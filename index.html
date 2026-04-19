@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Autovium Cloud Dashboard</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+</head>
+<body>
+    <h2>Cloud Dashboard</h2>
+    <p>Live Temperature: <span id="tempVal">--</span></p>
+    <button onclick="sendModbusCommand('valve_1', 1)">Turn Valve ON</button>
+    <button onclick="sendModbusCommand('valve_1', 0)">Turn Valve OFF</button>
+
+    <script>
+        // 1. Initialize Firebase (Use your actual config)
+        const firebaseConfig = {
+            apiKey: "AIzaSyA08M6S_iORA8_THJfgxCuOwZp_hwmdNwY",
+            databaseURL: "https://iotgateway-d2af4-default-rtdb.asia-southeast1.firebasedatabase.app/"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // 2. Listen for Live Data (ESP32 -> Cloud -> Dashboard)
+        const liveDataRef = database.ref('/Gateway_1/Live');
+        liveDataRef.on('value', (snapshot) => {
+            const data = snapshot.val();
+            if(data && data.temp_sensor) {
+                // Update your UI here
+                document.getElementById('tempVal').innerText = data.temp_sensor;
+            }
+        });
+
+        // 3. Send Commands (Dashboard -> Cloud -> ESP32)
+        function sendModbusCommand(tagName, value) {
+            const commandRef = database.ref('/Gateway_1/Command/' + tagName);
+            commandRef.set(value)
+            .then(() => console.log("Command sent to Firebase!"))
+            .catch((error) => console.error("Error writing command: ", error));
+        }
+    </script>
+</body>
+</html>
