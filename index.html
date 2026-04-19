@@ -111,199 +111,209 @@
     </div>
 
     <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyA08M6S_iORA8_THJfgxCuOwZp_hwmdNwY",
-            databaseURL: "https://iotgateway-d2af4-default-rtdb.asia-southeast1.firebasedatabase.app/"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
+    const firebaseConfig = {
+        apiKey: "AIzaSyA08M6S_iORA8_THJfgxCuOwZp_hwmdNwY",
+        databaseURL: "https://iotgateway-d2af4-default-rtdb.asia-southeast1.firebasedatabase.app/"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
 
-        let liveData = {};
-        let uiConfig = {};
+    let liveData = {};
+    let uiConfig = {};
 
-        // Define which widgets are allowed for which Modbus types
-        const WIDGET_RULES = {
-            'X': [{ id: 'led', name: 'Status LED (Read Only)' }],
-            'Y': [{ id: 'toggle', name: 'Toggle Switch' }, { id: 'push', name: 'Momentary Push Button' }],
-            'M': [{ id: 'toggle', name: 'Toggle Switch' }, { id: 'push', name: 'Momentary Push Button' }],
-            'D': [
-                { id: 'number', name: 'Number Input Box' },
-                { id: 'slider', name: 'Range Slider (0-100)' },
-                { id: 'progress', name: 'Progress Bar (0-100)' }
-            ]
-        };
+    // Define which widgets are allowed for which Modbus types
+    const WIDGET_RULES = {
+        'X': [{ id: 'led', name: 'Status LED (Read Only)' }],
+        'Y': [{ id: 'toggle', name: 'Toggle Switch' }, { id: 'push', name: 'Momentary Push Button' }],
+        'M': [{ id: 'toggle', name: 'Toggle Switch' }, { id: 'push', name: 'Momentary Push Button' }],
+        'D': [
+            { id: 'number', name: 'Number Input Box' },
+            { id: 'slider', name: 'Range Slider (0-100)' },
+            { id: 'progress', name: 'Progress Bar (0-100)' }
+        ]
+    };
 
-        const liveRef = database.ref('/Gateway_1/Live');
-        const configRef = database.ref('/Gateway_1/UI_Config');
+    const liveRef = database.ref('/Gateway_1/Live');
+    const configRef = database.ref('/Gateway_1/UI_Config');
 
-        configRef.on('value', (snapshot) => {
-            uiConfig = snapshot.val() || {};
-            if(Object.keys(liveData).length > 0) updateUI(); 
+    configRef.on('value', (snapshot) => {
+        uiConfig = snapshot.val() || {};
+        if(Object.keys(liveData).length > 0) updateUI(); 
+    });
+
+    liveRef.on('value', (snapshot) => {
+        liveData = snapshot.val();
+        const statusDot = document.getElementById('conn-status');
+        
+        if (liveData) {
+            statusDot.classList.add('status-online');
+            updateUI();
+        } else {
+            statusDot.classList.remove('status-online');
+        }
+    });
+
+    function updateUI() {
+        renderSettings();
+        renderDashboard();
+    }
+
+    // --- NEW: AUTO-DETECT FUNCTION ---
+    function getDefaultConfig(tagName) {
+        const lowerName = tagName.toLowerCase();
+        if (lowerName.startsWith('x')) return { modbusType: 'X', widgetType: 'led' };
+        if (lowerName.startsWith('y')) return { modbusType: 'Y', widgetType: 'toggle' };
+        if (lowerName.startsWith('m')) return { modbusType: 'M', widgetType: 'toggle' };
+        return { modbusType: 'D', widgetType: 'number' }; // Default fallback
+    }
+
+    // --- RENDER SETTINGS TAB ---
+    function renderSettings() {
+        const tbody = document.getElementById('settings-table-body');
+        tbody.innerHTML = '';
+
+        for (const [tagName, tagValue] of Object.entries(liveData)) {
+            // Use saved config, or auto-detect if it's a new tag
+            const currentConfig = uiConfig[tagName] || getDefaultConfig(tagName);
+            const mType = currentConfig.modbusType;
+            const wType = currentConfig.widgetType;
+
+            // Build Modbus Type Dropdown
+            const typeOptions = ['X', 'Y', 'M', 'D'].map(t => 
+                `<option value="${t}" ${mType === t ? 'selected' : ''}>${t === 'X' ? 'Discrete Input (X)' : t === 'Y' ? 'Physical Output (Y)' : t === 'M' ? 'Internal Relay (M)' : 'Holding Register (D)'}</option>`
+            ).join('');
+
+            // Build Widget Dropdown based on selected Modbus Type
+            const widgetOptions = WIDGET_RULES[mType].map(w => 
+                `<option value="${w.id}" ${wType === w.id ? 'selected' : ''}>${w.name}</option>`
+            ).join('');
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${tagName}</strong></td>
+                <td><span class="live-value" style="font-size: 1rem;">${tagValue}</span></td>
+                <td>
+                    <select onchange="handleModbusTypeChange('${tagName}', this.value)">
+                        ${typeOptions}
+                    </select>
+                </td>
+                <td>
+                    <select id="widget-select-${tagName}" onchange="saveConfig('${tagName}', '${mType}', this.value)">
+                        ${widgetOptions}
+                    </select>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        }
+    }
+
+    // When user changes Modbus Type, force update the Widget to the first available option
+    function handleModbusTypeChange(tagName, newModbusType) {
+        const defaultWidget = WIDGET_RULES[newModbusType][0].id;
+        saveConfig(tagName, newModbusType, defaultWidget);
+    }
+
+    function saveConfig(tagName, mType, wType) {
+        database.ref('/Gateway_1/UI_Config/' + tagName).set({ 
+            modbusType: mType, 
+            widgetType: wType 
         });
+    }
 
-        liveRef.on('value', (snapshot) => {
-            liveData = snapshot.val();
-            const statusDot = document.getElementById('conn-status');
+    // --- RENDER DASHBOARD TAB ---
+    function renderDashboard() {
+        const grid = document.getElementById('hmi-grid');
+        grid.innerHTML = '';
+
+        for (const [tagName, tagValue] of Object.entries(liveData)) {
+            // Use saved config, or auto-detect if it's a new tag
+            const config = uiConfig[tagName] || getDefaultConfig(tagName);
+            const wType = config.widgetType;
             
-            if (liveData) {
-                statusDot.classList.add('status-online');
-                updateUI();
-            } else {
-                statusDot.classList.remove('status-online');
-            }
-        });
+            const widget = document.createElement('div');
+            widget.className = 'hmi-widget';
 
-        function updateUI() {
-            renderSettings();
-            renderDashboard();
-        }
+            let controlsHTML = '';
 
-        // --- RENDER SETTINGS TAB ---
-        function renderSettings() {
-            const tbody = document.getElementById('settings-table-body');
-            tbody.innerHTML = '';
-
-            for (const [tagName, tagValue] of Object.entries(liveData)) {
-                // Determine current config or set defaults
-                const currentConfig = uiConfig[tagName] || { modbusType: 'D', widgetType: 'number' };
-                const mType = currentConfig.modbusType;
-                const wType = currentConfig.widgetType;
-
-                // Build Modbus Type Dropdown
-                const typeOptions = ['X', 'Y', 'M', 'D'].map(t => 
-                    `<option value="${t}" ${mType === t ? 'selected' : ''}>${t === 'X' ? 'Discrete Input (X)' : t === 'Y' ? 'Physical Output (Y)' : t === 'M' ? 'Internal Relay (M)' : 'Holding Register (D)'}</option>`
-                ).join('');
-
-                // Build Widget Dropdown based on selected Modbus Type
-                const widgetOptions = WIDGET_RULES[mType].map(w => 
-                    `<option value="${w.id}" ${wType === w.id ? 'selected' : ''}>${w.name}</option>`
-                ).join('');
-
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td><strong>${tagName}</strong></td>
-                    <td><span class="live-value" style="font-size: 1rem;">${tagValue}</span></td>
-                    <td>
-                        <select onchange="handleModbusTypeChange('${tagName}', this.value)">
-                            ${typeOptions}
-                        </select>
-                    </td>
-                    <td>
-                        <select id="widget-select-${tagName}" onchange="saveConfig('${tagName}', '${mType}', this.value)">
-                            ${widgetOptions}
-                        </select>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            }
-        }
-
-        // When user changes Modbus Type, force update the Widget to the first available option
-        function handleModbusTypeChange(tagName, newModbusType) {
-            const defaultWidget = WIDGET_RULES[newModbusType][0].id;
-            saveConfig(tagName, newModbusType, defaultWidget);
-        }
-
-        function saveConfig(tagName, mType, wType) {
-            database.ref('/Gateway_1/UI_Config/' + tagName).set({ 
-                modbusType: mType, 
-                widgetType: wType 
-            });
-        }
-
-        // --- RENDER DASHBOARD TAB ---
-        function renderDashboard() {
-            const grid = document.getElementById('hmi-grid');
-            grid.innerHTML = '';
-
-            for (const [tagName, tagValue] of Object.entries(liveData)) {
-                const config = uiConfig[tagName] || { modbusType: 'D', widgetType: 'number' };
-                const wType = config.widgetType;
-                
-                const widget = document.createElement('div');
-                widget.className = 'hmi-widget';
-
-                let controlsHTML = '';
-
-                // Generate specific UI based on Widget Type
-                if (wType === 'led') {
-                    controlsHTML = `
-                        <div class="led-container">
-                            <div class="led ${tagValue > 0 ? 'active' : ''}"></div>
-                        </div>
-                    `;
-                } 
-                else if (wType === 'toggle') {
-                    controlsHTML = `
-                        <div style="display: flex; justify-content: center; padding: 10px 0;">
-                            <label class="switch">
-                                <input type="checkbox" ${tagValue > 0 ? 'checked' : ''} onchange="sendCommand('${tagName}', this.checked ? 1 : 0)">
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                    `;
-                }
-                else if (wType === 'push') {
-                    controlsHTML = `
-                        <button class="btn btn-push" 
-                            onmousedown="sendCommand('${tagName}', 1)" onmouseup="sendCommand('${tagName}', 0)" onmouseleave="if(event.buttons === 1) sendCommand('${tagName}', 0)"
-                            ontouchstart="sendCommand('${tagName}', 1); event.preventDefault();" ontouchend="sendCommand('${tagName}', 0); event.preventDefault();">
-                            HOLD
-                        </button>
-                    `;
-                }
-                else if (wType === 'slider') {
-                    controlsHTML = `
-                        <input type="range" min="0" max="100" value="${tagValue}" onchange="sendCommand('${tagName}', this.value)">
-                        <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #64748B;"><span>0</span><span>100</span></div>
-                    `;
-                }
-                else if (wType === 'progress') {
-                    controlsHTML = `
-                        <div style="padding: 10px 0;">
-                            <progress value="${tagValue}" max="100"></progress>
-                        </div>
-                    `;
-                }
-                else {
-                    // Default Number Input
-                    controlsHTML = `
-                        <input type="number" id="input_${tagName}" placeholder="Value">
-                        <button class="btn" onclick="sendNumberCommand('${tagName}')">Write Register</button>
-                    `;
-                }
-
-                widget.innerHTML = `
-                    <div class="hmi-header">
-                        <span>${tagName}</span>
-                        <span class="live-value">${tagValue}</span>
+            // Generate specific UI based on Widget Type
+            if (wType === 'led') {
+                controlsHTML = `
+                    <div class="led-container">
+                        <div class="led ${tagValue > 0 ? 'active' : ''}"></div>
                     </div>
-                    <div>${controlsHTML}</div>
                 `;
-                grid.appendChild(widget);
+            } 
+            else if (wType === 'toggle') {
+                controlsHTML = `
+                    <div style="display: flex; justify-content: center; padding: 10px 0;">
+                        <label class="switch">
+                            <input type="checkbox" ${tagValue > 0 ? 'checked' : ''} onchange="sendCommand('${tagName}', this.checked ? 1 : 0)">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                `;
             }
-        }
-
-        // --- COMMANDS ---
-        function sendCommand(tagName, value) {
-            database.ref('/Gateway_1/Command/' + tagName).set(parseInt(value));
-        }
-
-        function sendNumberCommand(tagName) {
-            const inputElement = document.getElementById('input_' + tagName);
-            const value = parseInt(inputElement.value);
-            if (!isNaN(value)) {
-                sendCommand(tagName, value);
-                inputElement.value = ''; 
+            else if (wType === 'push') {
+                controlsHTML = `
+                    <button class="btn btn-push" 
+                        onmousedown="sendCommand('${tagName}', 1)" onmouseup="sendCommand('${tagName}', 0)" onmouseleave="if(event.buttons === 1) sendCommand('${tagName}', 0)"
+                        ontouchstart="sendCommand('${tagName}', 1); event.preventDefault();" ontouchend="sendCommand('${tagName}', 0); event.preventDefault();">
+                        HOLD
+                    </button>
+                `;
             }
-        }
+            else if (wType === 'slider') {
+                controlsHTML = `
+                    <input type="range" min="0" max="100" value="${tagValue}" onchange="sendCommand('${tagName}', this.value)">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #64748B;"><span>0</span><span>100</span></div>
+                `;
+            }
+            else if (wType === 'progress') {
+                controlsHTML = `
+                    <div style="padding: 10px 0;">
+                        <progress value="${tagValue}" max="100"></progress>
+                    </div>
+                `;
+            }
+            else {
+                // Default Number Input
+                controlsHTML = `
+                    <input type="number" id="input_${tagName}" placeholder="Value">
+                    <button class="btn" onclick="sendNumberCommand('${tagName}')">Write Register</button>
+                `;
+            }
 
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            event.currentTarget.classList.add('active');
-            document.getElementById('tab-' + tabId).classList.add('active');
+            widget.innerHTML = `
+                <div class="hmi-header">
+                    <span>${tagName}</span>
+                    <span class="live-value">${tagValue}</span>
+                </div>
+                <div>${controlsHTML}</div>
+            `;
+            grid.appendChild(widget);
         }
-    </script>
+    }
+
+    // --- COMMANDS ---
+    function sendCommand(tagName, value) {
+        database.ref('/Gateway_1/Command/' + tagName).set(parseInt(value));
+    }
+
+    function sendNumberCommand(tagName) {
+        const inputElement = document.getElementById('input_' + tagName);
+        const value = parseInt(inputElement.value);
+        if (!isNaN(value)) {
+            sendCommand(tagName, value);
+            inputElement.value = ''; 
+        }
+    }
+
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        event.currentTarget.classList.add('active');
+        document.getElementById('tab-' + tabId).classList.add('active');
+    }
+</script>
 </body>
 </html>
