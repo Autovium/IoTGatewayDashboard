@@ -1,18 +1,92 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Autovium Cloud Dashboard</title>
+    
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <style>
+        :root { 
+            --primary-blue: #1A365D; 
+            --secondary-blue: #2B6CB0; 
+            --bg-color: #F8FAFC; 
+            --surface-color: #FFFFFF; 
+            --text-main: #334155; 
+            --border-color: #E2E8F0; 
+        }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; 
+            margin: 0; padding: 0; background: var(--bg-color); color: var(--text-main); line-height: 1.5; 
+        }
+        header { 
+            background: var(--primary-blue); color: white; padding: 1rem 2rem; 
+            display: flex; justify-content: space-between; align-items: center; 
+        }
+        header h2 { margin: 0; font-size: 1.25rem; }
+        .branding { font-size: 0.85rem; opacity: 0.8; text-transform: uppercase; letter-spacing: 1px;}
+        .container { max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+        .card { 
+            background: var(--surface-color); padding: 1.5rem; border-radius: 8px; 
+            margin-bottom: 1.5rem; border: 1px solid var(--border-color); box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .card h3 { margin-top: 0; color: var(--primary-blue); border-bottom: 2px solid var(--bg-color); padding-bottom: 0.75rem; }
+        
+        /* Dynamic Grid for Tags */
+        #tags-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+        .tag-box {
+            border: 1px solid var(--border-color); border-radius: 6px; padding: 1rem;
+            display: flex; flex-direction: column; gap: 0.5rem; background: var(--bg-color);
+        }
+        .tag-header {
+            display: flex; justify-content: space-between; align-items: center;
+            font-weight: bold; font-size: 1.1rem; color: var(--primary-blue);
+        }
+        .live-value { 
+            font-family: monospace; font-size: 1.2rem; font-weight: bold; 
+            color: var(--secondary-blue); background: #EFF6FF; padding: 0.2rem 0.6rem; border-radius: 4px; 
+        }
+        .control-row {
+            display: flex; gap: 0.5rem; margin-top: 0.5rem;
+        }
+        input[type="number"] {
+            flex: 1; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px; outline: none;
+        }
+        button {
+            background: var(--secondary-blue); color: white; border: none; cursor: pointer; 
+            font-weight: 600; padding: 0.5rem 1rem; border-radius: 4px; transition: background 0.2s;
+        }
+        button:hover { background: var(--primary-blue); }
+        .status-indicator { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #10B981; margin-right: 8px; }
+        .status-offline { background: #EF4444; }
+    </style>
 </head>
 <body>
-    <h2>Cloud Dashboard</h2>
-    <p>Live Temperature: <span id="tempVal">--</span></p>
-    <button onclick="sendModbusCommand('valve_1', 1)">Turn Valve ON</button>
-    <button onclick="sendModbusCommand('valve_1', 0)">Turn Valve OFF</button>
+
+    <header>
+        <h2>Cloud Dashboard</h2>
+        <span class="branding">Autovium Technologies</span>
+    </header>
+
+    <div class="container">
+        <div class="card">
+            <h3><span id="connection-status" class="status-indicator status-offline"></span> Live Modbus Tags</h3>
+            <p style="font-size: 0.9rem; color: #64748B;">This UI generates automatically based on the payload sent from the ESP32.</p>
+            
+            <div id="tags-container">
+                <p>Waiting for data from Firebase...</p>
+            </div>
+        </div>
+    </div>
 
     <script>
-        // 1. Initialize Firebase (Use your actual config)
+        // 1. Initialize Firebase with your gateway credentials
         const firebaseConfig = {
             apiKey: "AIzaSyA08M6S_iORA8_THJfgxCuOwZp_hwmdNwY",
             databaseURL: "https://iotgateway-d2af4-default-rtdb.asia-southeast1.firebasedatabase.app/"
@@ -20,22 +94,67 @@
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
+        // UI Elements
+        const container = document.getElementById('tags-container');
+        const statusIndicator = document.getElementById('connection-status');
+
         // 2. Listen for Live Data (ESP32 -> Cloud -> Dashboard)
         const liveDataRef = database.ref('/Gateway_1/Live');
+        
         liveDataRef.on('value', (snapshot) => {
             const data = snapshot.val();
-            if(data && data.temp_sensor) {
-                // Update your UI here
-                document.getElementById('tempVal').innerText = data.temp_sensor;
+            
+            if (data) {
+                // We got data, clear the loading message and set status to green
+                container.innerHTML = '';
+                statusIndicator.classList.remove('status-offline');
+
+                // 3. Dynamically build the UI for the entire JSON object
+                for (const [tagName, tagValue] of Object.entries(data)) {
+                    
+                    const tagBox = document.createElement('div');
+                    tagBox.className = 'tag-box';
+                    
+                    tagBox.innerHTML = `
+                        <div class="tag-header">
+                            <span>${tagName}</span>
+                            <span class="live-value">${tagValue}</span>
+                        </div>
+                        <div class="control-row">
+                            <input type="number" id="input_${tagName}" placeholder="New value">
+                            <button onclick="sendCommand('${tagName}')">Set</button>
+                        </div>
+                    `;
+                    
+                    container.appendChild(tagBox);
+                }
+            } else {
+                container.innerHTML = '<p>Database is empty. Ensure the ESP32 is running and not in Config Mode.</p>';
+                statusIndicator.classList.add('status-offline');
             }
         });
 
-        // 3. Send Commands (Dashboard -> Cloud -> ESP32)
-        function sendModbusCommand(tagName, value) {
+        // 4. Send Commands (Dashboard -> Cloud -> ESP32)
+        function sendCommand(tagName) {
+            const inputElement = document.getElementById('input_' + tagName);
+            const value = parseInt(inputElement.value);
+
+            if (isNaN(value)) {
+                alert("Please enter a valid number.");
+                return;
+            }
+
+            // Push the command to the Command node
             const commandRef = database.ref('/Gateway_1/Command/' + tagName);
             commandRef.set(value)
-            .then(() => console.log("Command sent to Firebase!"))
-            .catch((error) => console.error("Error writing command: ", error));
+            .then(() => {
+                console.log(`Command sent: ${tagName} -> ${value}`);
+                inputElement.value = ''; // Clear the input box on success
+            })
+            .catch((error) => {
+                console.error("Error writing command: ", error);
+                alert("Failed to send command to Firebase.");
+            });
         }
     </script>
 </body>
