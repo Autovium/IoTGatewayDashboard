@@ -52,6 +52,19 @@
         input:checked + .slider { background-color: var(--success); }
         input:checked + .slider:before { transform: translateX(22px); }
 
+        /* NEW: Range Slider */
+        input[type=range] { width: 100%; margin: 10px 0; }
+        
+        /* NEW: Progress Bar */
+        progress { width: 100%; height: 20px; border-radius: 10px; overflow: hidden; appearance: none; }
+        progress::-webkit-progress-bar { background-color: #E2E8F0; }
+        progress::-webkit-progress-value { background-color: var(--secondary-blue); }
+
+        /* NEW: Status LED */
+        .led-container { display: flex; align-items: center; justify-content: center; height: 50px; background: #E2E8F0; border-radius: 6px; }
+        .led { width: 24px; height: 24px; border-radius: 50%; background-color: #94A3B8; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); transition: 0.2s; }
+        .led.active { background-color: var(--success); box-shadow: 0 0 15px var(--success), inset 0 2px 4px rgba(255,255,255,0.4); }
+
         /* Settings Table */
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 0.75rem; border-bottom: 1px solid var(--border-color); text-align: left; }
@@ -152,9 +165,12 @@
                     <td>
                         <select onchange="updateConfig('${tagName}', this.value)">
                             <option value="readonly" ${currentType === 'readonly' ? 'selected' : ''}>Read Only Text</option>
-                            <option value="number" ${currentType === 'number' ? 'selected' : ''}>Number Input + Set</option>
+                            <option value="led" ${currentType === 'led' ? 'selected' : ''}>Status LED (Discrete Input)</option>
                             <option value="toggle" ${currentType === 'toggle' ? 'selected' : ''}>Toggle Switch (0/1)</option>
                             <option value="push" ${currentType === 'push' ? 'selected' : ''}>Momentary Push Button (0/1)</option>
+                            <option value="number" ${currentType === 'number' ? 'selected' : ''}>Number Input Box</option>
+                            <option value="slider" ${currentType === 'slider' ? 'selected' : ''}>Range Slider (0-100)</option>
+                            <option value="progress" ${currentType === 'progress' ? 'selected' : ''}>Progress Bar (0-100)</option>
                         </select>
                     </td>
                 `;
@@ -179,6 +195,13 @@
                 if (type === 'readonly') {
                     controlsHTML = `<span style="color: #64748B; font-size: 0.85rem;">Display Only</span>`;
                 } 
+                else if (type === 'led') {
+                    controlsHTML = `
+                        <div class="led-container">
+                            <div class="led ${tagValue > 0 ? 'active' : ''}"></div>
+                        </div>
+                    `;
+                }
                 else if (type === 'toggle') {
                     const isChecked = tagValue > 0 ? 'checked' : '';
                     controlsHTML = `
@@ -199,6 +222,19 @@
                             ontouchend="sendCommand('${tagName}', 0); event.preventDefault();">
                             HOLD TO ACTIVATE
                         </button>
+                    `;
+                }
+                else if (type === 'slider') {
+                    controlsHTML = `
+                        <input type="range" min="0" max="100" value="${tagValue}" onchange="sendCommand('${tagName}', this.value)">
+                        <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #64748B;"><span>0</span><span>100</span></div>
+                    `;
+                }
+                else if (type === 'progress') {
+                    controlsHTML = `
+                        <div style="padding: 10px 0;">
+                            <progress value="${tagValue}" max="100"></progress>
+                        </div>
                     `;
                 }
                 else {
