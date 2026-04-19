@@ -18,7 +18,7 @@
         header { background: var(--primary-blue); color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
         header h2 { margin: 0; font-size: 1.25rem; }
         .branding { font-size: 0.85rem; opacity: 0.8; text-transform: uppercase; letter-spacing: 1px;}
-        .container { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+        .container { max-width: 1000px; margin: 2rem auto; padding: 0 1rem; }
         .card { background: var(--surface-color); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 1.5rem;}
         
         /* Tabs */
@@ -31,8 +31,8 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
         /* HMI Grid */
-        #hmi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem; }
-        .hmi-widget { border: 1px solid var(--border-color); border-radius: 6px; padding: 1rem; background: var(--bg-color); display: flex; flex-direction: column; justify-content: space-between; min-height: 80px;}
+        #hmi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+        .hmi-widget { border: 1px solid var(--border-color); border-radius: 6px; padding: 1rem; background: var(--bg-color); display: flex; flex-direction: column; justify-content: space-between; min-height: 90px;}
         .hmi-header { display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 1.1rem; color: var(--primary-blue); margin-bottom: 0.5rem;}
         .live-value { font-family: monospace; font-size: 1.2rem; font-weight: bold; color: var(--secondary-blue); background: #EFF6FF; padding: 0.2rem 0.6rem; border-radius: 4px; }
         
@@ -41,7 +41,7 @@
         button.btn { width: 100%; background: var(--secondary-blue); color: white; border: none; cursor: pointer; font-weight: 600; padding: 0.5rem; border-radius: 4px; transition: 0.2s; }
         button.btn:hover { background: var(--primary-blue); }
         button.btn:active { transform: scale(0.98); }
-        button.btn-push { background: #64748B; height: 50px; font-size: 1.1rem; user-select: none; }
+        button.btn-push { background: #64748B; height: 50px; font-size: 1.1rem; user-select: none; border-radius: 6px;}
         button.btn-push:active { background: var(--success); }
 
         /* Toggle Switch */
@@ -51,6 +51,19 @@
         .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: white; transition: .3s; border-radius: 50%; }
         input:checked + .slider { background-color: var(--success); }
         input:checked + .slider:before { transform: translateX(22px); }
+
+        /* Range Slider */
+        input[type=range] { width: 100%; margin: 10px 0; }
+        
+        /* Progress Bar */
+        progress { width: 100%; height: 20px; border-radius: 10px; overflow: hidden; appearance: none; }
+        progress::-webkit-progress-bar { background-color: #E2E8F0; }
+        progress::-webkit-progress-value { background-color: var(--secondary-blue); }
+
+        /* Status LED */
+        .led-container { display: flex; align-items: center; justify-content: center; height: 50px; background: #E2E8F0; border-radius: 6px; }
+        .led { width: 24px; height: 24px; border-radius: 50%; background-color: #94A3B8; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); transition: 0.2s; }
+        .led.active { background-color: var(--success); box-shadow: 0 0 15px var(--success), inset 0 2px 4px rgba(255,255,255,0.4); }
 
         /* Settings Table */
         table { width: 100%; border-collapse: collapse; }
@@ -80,15 +93,16 @@
         </div>
 
         <div id="tab-settings" class="tab-content card">
-            <h3>Widget Configuration</h3>
-            <p style="font-size: 0.9rem; color: #64748B;">Select the Modbus Type to see compatible widgets. Changes save automatically.</p>
+            <h3>Tag Binding & Access Control</h3>
+            <p style="font-size: 0.9rem; color: #64748B;">Assigning a tag as Read-Only will restrict it to display widgets (LEDs, Progress Bars). Changes save automatically.</p>
             <table>
                 <thead>
                     <tr>
-                        <th style="width: 20%;">Modbus Tag</th>
-                        <th style="width: 15%;">Live Value</th>
-                        <th style="width: 30%;">Modbus Type</th>
-                        <th style="width: 35%;">Widget Interface</th>
+                        <th style="width: 15%;">Modbus Tag</th>
+                        <th style="width: 10%;">Live Value</th>
+                        <th style="width: 25%;">Modbus Type</th>
+                        <th style="width: 20%;">Access Mode</th>
+                        <th style="width: 30%;">Widget Interface</th>
                     </tr>
                 </thead>
                 <tbody id="settings-table-body">
@@ -98,7 +112,6 @@
     </div>
 
     <script>
-        // 1. Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyA08M6S_iORA8_THJfgxCuOwZp_hwmdNwY",
             databaseURL: "https://iotgateway-d2af4-default-rtdb.asia-southeast1.firebasedatabase.app/"
@@ -106,29 +119,65 @@
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
-        // 2. State Variables
         let liveData = {};
         let uiConfig = {};
 
-        // 3. Define the rules: Which Modbus types get which widgets
-        const WIDGET_RULES = {
-            'X': [{ val: 'readonly', text: 'Read Only Text (Status)' }],
-            'Y': [{ val: 'toggle', text: 'Toggle Switch (0/1)' }, { val: 'push', text: 'Momentary Push Button' }],
-            'M': [{ val: 'toggle', text: 'Toggle Switch (0/1)' }, { val: 'push', text: 'Momentary Push Button' }],
-            'D': [{ val: 'number', text: 'Number Input + Set' }, { val: 'readonly', text: 'Read Only Text' }]
-        };
+        // --- NEW: Dynamic Widget Rules Engine ---
+        function getAvailableWidgets(mType, aMode) {
+            // X is inherently Read-Only
+            if (mType === 'X') {
+                return [
+                    { val: 'led', text: 'Status LED (Indicator)' },
+                    { val: 'readonly', text: 'Read Only Text' }
+                ];
+            }
 
-        // 4. Listeners
+            // Coils & Relays (Boolean)
+            if (mType === 'Y' || mType === 'M') {
+                if (aMode === 'r') {
+                    return [
+                        { val: 'led', text: 'Status LED (Indicator)' },
+                        { val: 'readonly', text: 'Read Only Text' }
+                    ];
+                }
+                return [
+                    { val: 'toggle', text: 'Toggle Switch (0/1)' },
+                    { val: 'push', text: 'Momentary Push Button' }
+                ];
+            }
+
+            // Holding Registers (Analog/Digital)
+            if (mType === 'D') {
+                if (aMode === 'r') {
+                    return [
+                        { val: 'progress', text: 'Progress Bar (0-100)' },
+                        { val: 'readonly', text: 'Read Only Text' }
+                    ];
+                }
+                return [
+                    { val: 'number', text: 'Number Input + Set' },
+                    { val: 'slider', text: 'Range Slider (0-100)' }
+                ];
+            }
+        }
+
+        // --- NEW: Auto-Detect Function ---
+        function getDefaultConfig(tagName) {
+            const lowerName = tagName.toLowerCase();
+            if (lowerName.startsWith('x')) return { modbusType: 'X', accessMode: 'r', widgetType: 'led' };
+            if (lowerName.startsWith('y')) return { modbusType: 'Y', accessMode: 'rw', widgetType: 'toggle' };
+            if (lowerName.startsWith('m')) return { modbusType: 'M', accessMode: 'rw', widgetType: 'toggle' };
+            return { modbusType: 'D', accessMode: 'rw', widgetType: 'number' };
+        }
+
         const liveRef = database.ref('/Gateway_1/Live');
         const configRef = database.ref('/Gateway_1/UI_Config');
 
-        // Fetch UI Config first
         configRef.on('value', (snapshot) => {
             uiConfig = snapshot.val() || {};
             if(Object.keys(liveData).length > 0) updateUI();
         });
 
-        // Fetch Live Data
         liveRef.on('value', (snapshot) => {
             liveData = snapshot.val();
             const statusDot = document.getElementById('conn-status');
@@ -141,28 +190,27 @@
             }
         });
 
-        // 5. Core Render Logic
         function updateUI() {
             renderSettings();
             renderDashboard();
         }
 
+        // --- RENDER SETTINGS TAB ---
         function renderSettings() {
             const tbody = document.getElementById('settings-table-body');
             tbody.innerHTML = '';
 
             for (const [tagName, tagValue] of Object.entries(liveData)) {
                 
-                // Get the saved config, handle legacy "type" structure if upgrading, or set default
-                let config = uiConfig[tagName] || { modbusType: 'D', widgetType: 'number' };
-                if (config.type && !config.widgetType) {
-                    config = { modbusType: 'D', widgetType: config.type }; // Migrate old data
-                }
+                // Get config, run migration if missing new parameters
+                let config = uiConfig[tagName] || getDefaultConfig(tagName);
+                if (config.type && !config.widgetType) { config.widgetType = config.type; }
+                if (!config.accessMode) { config.accessMode = (config.modbusType === 'X') ? 'r' : 'rw'; }
 
                 const mType = config.modbusType;
+                const aMode = config.accessMode;
                 const wType = config.widgetType;
 
-                // Build Modbus Type Dropdown
                 const typeOptions = `
                     <option value="X" ${mType === 'X' ? 'selected' : ''}>Discrete Input (X)</option>
                     <option value="Y" ${mType === 'Y' ? 'selected' : ''}>Physical Output (Y)</option>
@@ -170,8 +218,17 @@
                     <option value="D" ${mType === 'D' ? 'selected' : ''}>Holding Register (D)</option>
                 `;
 
-                // Build Widget Dropdown dynamically based on Modbus type
-                const widgetOptions = WIDGET_RULES[mType].map(opt => 
+                // X forces Read-Only mode. Others get R/W/RW options.
+                const modeOptions = mType === 'X' 
+                    ? `<option value="r" selected>Read Only</option>`
+                    : `
+                    <option value="rw" ${aMode === 'rw' ? 'selected' : ''}>Read / Write</option>
+                    <option value="r" ${aMode === 'r' ? 'selected' : ''}>Read Only</option>
+                    <option value="w" ${aMode === 'w' ? 'selected' : ''}>Write Only</option>
+                `;
+
+                const validWidgets = getAvailableWidgets(mType, aMode);
+                const widgetOptions = validWidgets.map(opt => 
                     `<option value="${opt.val}" ${wType === opt.val ? 'selected' : ''}>${opt.text}</option>`
                 ).join('');
 
@@ -180,57 +237,102 @@
                     <td><strong>${tagName}</strong></td>
                     <td><span class="live-value" style="font-size: 1rem;">${tagValue}</span></td>
                     <td>
-                        <select onchange="handleModbusTypeChange('${tagName}', this.value)">
-                            ${typeOptions}
-                        </select>
+                        <select id="mtype-${tagName}" onchange="handleConfigChange('${tagName}')">${typeOptions}</select>
                     </td>
                     <td>
-                        <select id="widget-select-${tagName}" onchange="saveConfig('${tagName}', '${mType}', this.value)">
-                            ${widgetOptions}
-                        </select>
+                        <select id="amode-${tagName}" onchange="handleConfigChange('${tagName}')">${modeOptions}</select>
+                    </td>
+                    <td>
+                        <select id="wtype-${tagName}" onchange="handleConfigChange('${tagName}')">${widgetOptions}</select>
                     </td>
                 `;
                 tbody.appendChild(tr);
             }
         }
 
+        // --- CONFIGURATION HANDLER ---
+        function handleConfigChange(tagName) {
+            const mType = document.getElementById(`mtype-${tagName}`).value;
+            let aMode = document.getElementById(`amode-${tagName}`).value;
+            let wType = document.getElementById(`wtype-${tagName}`).value;
+
+            // Enforce logic rule: If user swaps to X, force Read-Only
+            if (mType === 'X') aMode = 'r';
+
+            // Validate that the currently selected widget is still allowed under the new Modbus/Access rules
+            const validWidgets = getAvailableWidgets(mType, aMode);
+            const isValidWidget = validWidgets.some(w => w.val === wType);
+            
+            // If the widget is no longer valid (e.g. they changed a Toggle to Read-Only), pick the first safe option
+            if (!isValidWidget) {
+                wType = validWidgets[0].val;
+            }
+
+            // Save the synchronized state to Firebase
+            database.ref('/Gateway_1/UI_Config/' + tagName).set({ 
+                modbusType: mType,
+                accessMode: aMode,
+                widgetType: wType
+            });
+        }
+
+        // --- RENDER DASHBOARD TAB ---
         function renderDashboard() {
             const grid = document.getElementById('hmi-grid');
             grid.innerHTML = '';
 
             for (const [tagName, tagValue] of Object.entries(liveData)) {
                 
-                let config = uiConfig[tagName] || { modbusType: 'D', widgetType: 'number' };
-                if (config.type && !config.widgetType) { config.widgetType = config.type; } // Migration check
+                let config = uiConfig[tagName] || getDefaultConfig(tagName);
+                if (config.type && !config.widgetType) config.widgetType = config.type; 
+                if (!config.accessMode) config.accessMode = (config.modbusType === 'X') ? 'r' : 'rw';
 
-                const widgetType = config.widgetType;
+                const wType = config.widgetType;
                 const widget = document.createElement('div');
                 widget.className = 'hmi-widget';
 
                 let controlsHTML = '';
 
-                if (widgetType === 'readonly') {
+                if (wType === 'readonly') {
                     controlsHTML = `<span style="color: #64748B; font-size: 0.85rem; padding: 10px 0; display: block;">Display Only</span>`;
                 } 
-                else if (widgetType === 'toggle') {
-                    const isChecked = tagValue > 0 ? 'checked' : '';
+                else if (wType === 'led') {
                     controlsHTML = `
-                        <label class="switch">
-                            <input type="checkbox" ${isChecked} onchange="sendCommand('${tagName}', this.checked ? 1 : 0)">
-                            <span class="slider"></span>
-                        </label>
+                        <div class="led-container">
+                            <div class="led ${tagValue > 0 ? 'active' : ''}"></div>
+                        </div>
                     `;
                 }
-                else if (widgetType === 'push') {
+                else if (wType === 'progress') {
+                    controlsHTML = `
+                        <div style="padding: 10px 0;">
+                            <progress value="${tagValue}" max="100"></progress>
+                        </div>
+                    `;
+                }
+                else if (wType === 'toggle') {
+                    controlsHTML = `
+                        <div style="display: flex; justify-content: center; padding: 10px 0;">
+                            <label class="switch">
+                                <input type="checkbox" ${tagValue > 0 ? 'checked' : ''} onchange="sendCommand('${tagName}', this.checked ? 1 : 0)">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    `;
+                }
+                else if (wType === 'push') {
                     controlsHTML = `
                         <button class="btn btn-push" 
-                            onmousedown="sendCommand('${tagName}', 1)" 
-                            onmouseup="sendCommand('${tagName}', 0)" 
-                            onmouseleave="if(event.buttons === 1) sendCommand('${tagName}', 0)"
-                            ontouchstart="sendCommand('${tagName}', 1); event.preventDefault();"
-                            ontouchend="sendCommand('${tagName}', 0); event.preventDefault();">
+                            onmousedown="sendCommand('${tagName}', 1)" onmouseup="sendCommand('${tagName}', 0)" onmouseleave="if(event.buttons === 1) sendCommand('${tagName}', 0)"
+                            ontouchstart="sendCommand('${tagName}', 1); event.preventDefault();" ontouchend="sendCommand('${tagName}', 0); event.preventDefault();">
                             HOLD TO ACTIVATE
                         </button>
+                    `;
+                }
+                else if (wType === 'slider') {
+                    controlsHTML = `
+                        <input type="range" min="0" max="100" value="${tagValue}" onchange="sendCommand('${tagName}', this.value)">
+                        <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #64748B;"><span>0</span><span>100</span></div>
                     `;
                 }
                 else {
@@ -251,22 +353,9 @@
             }
         }
 
-        // 6. Cloud Actions
-        function handleModbusTypeChange(tagName, newModbusType) {
-            // When Modbus type changes, automatically set the widget to the first compatible option
-            const defaultWidget = WIDGET_RULES[newModbusType][0].val;
-            saveConfig(tagName, newModbusType, defaultWidget);
-        }
-
-        function saveConfig(tagName, modbusType, widgetType) {
-            database.ref('/Gateway_1/UI_Config/' + tagName).set({ 
-                modbusType: modbusType,
-                widgetType: widgetType
-            });
-        }
-
+        // --- COMMANDS ---
         function sendCommand(tagName, value) {
-            database.ref('/Gateway_1/Command/' + tagName).set(value);
+            database.ref('/Gateway_1/Command/' + tagName).set(parseInt(value));
         }
 
         function sendNumberCommand(tagName) {
