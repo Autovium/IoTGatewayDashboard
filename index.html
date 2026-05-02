@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cloud HMI</title>
+    <title>Cloud HMI - Pro</title>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -17,8 +17,7 @@
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; margin: 0; background: var(--bg-color); color: var(--text-main); }
         header { background: var(--primary-blue); color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
         header h2 { margin: 0; font-size: 1.25rem; }
-        .branding { font-size: 0.85rem; opacity: 0.8; text-transform: uppercase; letter-spacing: 1px;}
-        .container { max-width: 1000px; margin: 2rem auto; padding: 0 1rem; }
+        .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
         .card { background: var(--surface-color); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 1.5rem;}
         
         /* Tabs */
@@ -32,51 +31,58 @@
 
         /* HMI Grid */
         #hmi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
-        .hmi-widget { border: 1px solid var(--border-color); border-radius: 6px; padding: 1rem; background: var(--bg-color); display: flex; flex-direction: column; justify-content: space-between; min-height: 90px;}
+        .hmi-widget { border: 1px solid var(--border-color); border-radius: 6px; padding: 1rem; background: var(--bg-color); display: flex; flex-direction: column; justify-content: space-between; min-height: 110px;}
         .hmi-header { display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 1.1rem; color: var(--primary-blue); margin-bottom: 0.5rem;}
         .live-value { font-family: monospace; font-size: 1.2rem; font-weight: bold; color: var(--secondary-blue); background: #EFF6FF; padding: 0.2rem 0.6rem; border-radius: 4px; }
+        .unit-label { font-size: 0.8rem; color: #64748B; margin-left: 4px; }
         
         /* Widget Controls */
-        input[type="number"] { width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px; box-sizing: border-box; margin-bottom: 0.5rem;}
+        input[type="number"], input[type="text"], select { width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px; box-sizing: border-box; margin-bottom: 0.5rem;}
         button.btn { width: 100%; background: var(--secondary-blue); color: white; border: none; cursor: pointer; font-weight: 600; padding: 0.5rem; border-radius: 4px; transition: 0.2s; }
         button.btn:hover { background: var(--primary-blue); }
-        button.btn:active { transform: scale(0.98); }
         button.btn-push { background: #64748B; height: 50px; font-size: 1.1rem; user-select: none; border-radius: 6px;}
         button.btn-push:active { background: var(--success); }
 
-        /* Toggle Switch */
+        /* Switch, Slider, Progress (Same as before) */
         .switch { position: relative; display: inline-block; width: 50px; height: 28px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .3s; border-radius: 34px; }
         .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: white; transition: .3s; border-radius: 50%; }
         input:checked + .slider { background-color: var(--success); }
         input:checked + .slider:before { transform: translateX(22px); }
-
-        /* Range Slider */
         input[type=range] { width: 100%; margin: 10px 0; }
-        
-        /* Progress Bar */
         progress { width: 100%; height: 20px; border-radius: 10px; overflow: hidden; appearance: none; }
         progress::-webkit-progress-bar { background-color: #E2E8F0; }
         progress::-webkit-progress-value { background-color: var(--secondary-blue); }
 
+        /* CSS Gauge */
+        .gauge-container { width: 100%; display: flex; justify-content: center; margin: 10px 0;}
+        .gauge { width: 120px; height: 60px; background: #E2E8F0; border-radius: 120px 120px 0 0; position: relative; overflow: hidden; }
+        .gauge-fill { width: 100%; height: 100%; background: var(--secondary-blue); transform-origin: bottom center; transform: rotate(0deg); transition: transform 0.5s ease-out; position: absolute; bottom: 0; }
+        .gauge-cover { width: 90px; height: 45px; background: var(--bg-color); border-radius: 90px 90px 0 0; position: absolute; bottom: 0; left: 15px; }
+
         /* Status LED */
-        .led-container { display: flex; align-items: center; justify-content: center; height: 50px; background: #E2E8F0; border-radius: 6px; }
+        .led-container { display: flex; align-items: center; justify-content: center; height: 50px; }
         .led { width: 24px; height: 24px; border-radius: 50%; background-color: #94A3B8; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); transition: 0.2s; }
         .led.active { background-color: var(--success); box-shadow: 0 0 15px var(--success), inset 0 2px 4px rgba(255,255,255,0.4); }
 
         /* Settings Table */
         table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 0.75rem; border-bottom: 1px solid var(--border-color); text-align: left; }
-        select { padding: 0.4rem; border-radius: 4px; border: 1px solid var(--border-color); width: 100%;}
+        th, td { padding: 0.75rem; border-bottom: 1px solid var(--border-color); text-align: left; vertical-align: top;}
         .status-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #EF4444; margin-right: 8px; }
         .status-online { background: #10B981; }
+
+        /* Mapping Config Block */
+        .mapping-config { background: #F1F5F9; padding: 10px; border-radius: 6px; margin-top: 5px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.85rem;}
+        .mapping-config input { padding: 0.3rem; margin-bottom: 0; font-size: 0.85rem;}
+        .mapping-config label { display: block; margin-bottom: 2px; font-weight: bold; color: #475569;}
+        .mapping-col { display: flex; flex-direction: column; gap: 4px;}
     </style>
 </head>
 <body>
 
     <header>
-        <h2><span id="conn-status" class="status-dot"></span> Cloud HMI</h2>
+        <h2><span id="conn-status" class="status-dot"></span> Cloud HMI - Advanced</h2>
     </header>
 
     <div class="container">
@@ -92,26 +98,28 @@
         </div>
 
         <div id="tab-settings" class="tab-content card">
-            <h3>Tag Binding & Access Control</h3>
-            <p style="font-size: 0.9rem; color: #64748B;">Assigning a tag as Read-Only will restrict it to display widgets (LEDs, Progress Bars). Changes save automatically.</p>
+            <h3>Tag Binding, Scaling & Access Control</h3>
+            <p style="font-size: 0.9rem; color: #64748B;">Map raw Modbus data to engineering units automatically. Changes save immediately.</p>
             <table>
                 <thead>
                     <tr>
-                        <th style="width: 15%;">Modbus Tag</th>
-                        <th style="width: 10%;">Live Value</th>
-                        <th style="width: 25%;">Modbus Type</th>
-                        <th style="width: 20%;">Access Mode</th>
-                        <th style="width: 30%;">Widget Interface</th>
+                        <th style="width: 15%;">Tag</th>
+                        <th style="width: 15%;">Modbus Type</th>
+                        <th style="width: 15%;">Access Mode</th>
+                        <th style="width: 25%;">Widget Interface</th>
+                        <th style="width: 30%;">Data Mapping / Scaling</th>
                     </tr>
                 </thead>
                 <tbody id="settings-table-body">
-                    </tbody>
+                    <!-- Populated by JS -->
+                </tbody>
             </table>
         </div>
     </div>
 
     <script>
         const firebaseConfig = {
+            // INSERT YOUR FIREBASE CONFIG HERE
             apiKey: "AIzaSyA08M6S_iORA8_THJfgxCuOwZp_hwmdNwY",
             databaseURL: "https://iotgateway-d2af4-default-rtdb.asia-southeast1.firebasedatabase.app/"
         };
@@ -121,53 +129,61 @@
         let liveData = {};
         let uiConfig = {};
 
-        // --- NEW: Dynamic Widget Rules Engine ---
         function getAvailableWidgets(mType, aMode) {
-            // X is inherently Read-Only
             if (mType === 'X') {
                 return [
                     { val: 'led', text: 'Status LED (Indicator)' },
                     { val: 'readonly', text: 'Read Only Text' }
                 ];
             }
-
-            // Coils & Relays (Boolean)
             if (mType === 'Y' || mType === 'M') {
-                if (aMode === 'r') {
-                    return [
-                        { val: 'led', text: 'Status LED (Indicator)' },
-                        { val: 'readonly', text: 'Read Only Text' }
-                    ];
-                }
-                return [
-                    { val: 'toggle', text: 'Toggle Switch (0/1)' },
-                    { val: 'push', text: 'Momentary Push Button' }
-                ];
+                if (aMode === 'r') return [{ val: 'led', text: 'Status LED' }, { val: 'readonly', text: 'Read Only Text' }];
+                return [{ val: 'toggle', text: 'Toggle Switch (0/1)' }, { val: 'push', text: 'Momentary Push Button' }];
             }
-
-            // Holding Registers (Analog/Digital)
             if (mType === 'D') {
                 if (aMode === 'r') {
                     return [
-                        { val: 'progress', text: 'Progress Bar (0-100)' },
-                        { val: 'readonly', text: 'Read Only Text' }
+                        { val: 'gauge', text: 'Circular Gauge' },
+                        { val: 'progress', text: 'Progress Bar' },
+                        { val: 'datacard', text: 'Value + Units Card' }
                     ];
                 }
                 return [
                     { val: 'number', text: 'Number Input + Set' },
-                    { val: 'slider', text: 'Range Slider (0-100)' }
+                    { val: 'slider', text: 'Range Slider' },
+                    { val: 'dropdown', text: 'Dropdown Selector (States)' }
                 ];
             }
         }
 
-        // --- NEW: Auto-Detect Function ---
         function getDefaultConfig(tagName) {
             const lowerName = tagName.toLowerCase();
-            if (lowerName.startsWith('x')) return { modbusType: 'X', accessMode: 'r', widgetType: 'led' };
-            if (lowerName.startsWith('y')) return { modbusType: 'Y', accessMode: 'rw', widgetType: 'toggle' };
-            if (lowerName.startsWith('m')) return { modbusType: 'M', accessMode: 'rw', widgetType: 'toggle' };
-            return { modbusType: 'D', accessMode: 'rw', widgetType: 'number' };
+            let base = { rawMin: 0, rawMax: 1000, scaleMin: 0, scaleMax: 100, unit: '' };
+            if (lowerName.startsWith('x')) return { ...base, modbusType: 'X', accessMode: 'r', widgetType: 'led' };
+            if (lowerName.startsWith('y')) return { ...base, modbusType: 'Y', accessMode: 'rw', widgetType: 'toggle' };
+            if (lowerName.startsWith('m')) return { ...base, modbusType: 'M', accessMode: 'rw', widgetType: 'toggle' };
+            return { ...base, modbusType: 'D', accessMode: 'rw', widgetType: 'number' };
         }
+
+        // --- MATH: Linear Scaling ---
+        function scaleValue(raw, config) {
+            if (config.modbusType !== 'D' || config.rawMin === undefined) return raw; // Only scale analog
+            const rMin = parseFloat(config.rawMin); const rMax = parseFloat(config.rawMax);
+            const sMin = parseFloat(config.scaleMin); const sMax = parseFloat(config.scaleMax);
+            if (rMax - rMin === 0) return raw; // Prevent divide by zero
+            let scaled = ((raw - rMin) / (rMax - rMin)) * (sMax - sMin) + sMin;
+            return Math.round(scaled * 100) / 100; // Keep 2 decimal places
+        }
+
+        function unscaleValue(scaled, config) {
+            if (config.modbusType !== 'D' || config.rawMin === undefined) return scaled;
+            const rMin = parseFloat(config.rawMin); const rMax = parseFloat(config.rawMax);
+            const sMin = parseFloat(config.scaleMin); const sMax = parseFloat(config.scaleMax);
+            if (sMax - sMin === 0) return scaled;
+            let raw = ((scaled - sMin) / (sMax - sMin)) * (rMax - rMin) + rMin;
+            return Math.round(raw); // Modbus registers are integers
+        }
+
 
         const liveRef = database.ref('/Gateway_1/Live');
         const configRef = database.ref('/Gateway_1/UI_Config');
@@ -180,7 +196,6 @@
         liveRef.on('value', (snapshot) => {
             liveData = snapshot.val();
             const statusDot = document.getElementById('conn-status');
-            
             if (liveData) {
                 statusDot.classList.add('status-online');
                 updateUI();
@@ -200,15 +215,11 @@
             tbody.innerHTML = '';
 
             for (const [tagName, tagValue] of Object.entries(liveData)) {
-                
-                // Get config, run migration if missing new parameters
                 let config = uiConfig[tagName] || getDefaultConfig(tagName);
-                if (config.type && !config.widgetType) { config.widgetType = config.type; }
-                if (!config.accessMode) { config.accessMode = (config.modbusType === 'X') ? 'r' : 'rw'; }
-
-                const mType = config.modbusType;
-                const aMode = config.accessMode;
-                const wType = config.widgetType;
+                
+                const mType = config.modbusType || 'D';
+                const aMode = config.accessMode || 'rw';
+                const wType = config.widgetType || 'number';
 
                 const typeOptions = `
                     <option value="X" ${mType === 'X' ? 'selected' : ''}>Discrete Input (X)</option>
@@ -217,13 +228,11 @@
                     <option value="D" ${mType === 'D' ? 'selected' : ''}>Holding Register (D)</option>
                 `;
 
-                // X forces Read-Only mode. Others get R/W/RW options.
                 const modeOptions = mType === 'X' 
                     ? `<option value="r" selected>Read Only</option>`
                     : `
                     <option value="rw" ${aMode === 'rw' ? 'selected' : ''}>Read / Write</option>
                     <option value="r" ${aMode === 'r' ? 'selected' : ''}>Read Only</option>
-                    <option value="w" ${aMode === 'w' ? 'selected' : ''}>Write Only</option>
                 `;
 
                 const validWidgets = getAvailableWidgets(mType, aMode);
@@ -231,48 +240,61 @@
                     `<option value="${opt.val}" ${wType === opt.val ? 'selected' : ''}>${opt.text}</option>`
                 ).join('');
 
+                // Only show mapping for D-Registers
+                let mappingHTML = '<span style="color:#94A3B8; font-size:0.85rem;">N/A for Booleans</span>';
+                if (mType === 'D') {
+                    mappingHTML = `
+                        <div class="mapping-config">
+                            <div class="mapping-col">
+                                <label>Raw Min & Max (PLC)</label>
+                                <input type="number" id="rmin-${tagName}" value="${config.rawMin !== undefined ? config.rawMin : 0}" onchange="handleConfigChange('${tagName}')">
+                                <input type="number" id="rmax-${tagName}" value="${config.rawMax !== undefined ? config.rawMax : 1000}" onchange="handleConfigChange('${tagName}')">
+                            </div>
+                            <div class="mapping-col">
+                                <label>Scaled Min & Max (UI)</label>
+                                <input type="number" id="smin-${tagName}" value="${config.scaleMin !== undefined ? config.scaleMin : 0}" onchange="handleConfigChange('${tagName}')">
+                                <input type="number" id="smax-${tagName}" value="${config.scaleMax !== undefined ? config.scaleMax : 100}" onchange="handleConfigChange('${tagName}')">
+                            </div>
+                            <div class="mapping-col" style="grid-column: span 2;">
+                                <label>Engineering Unit (e.g., PSI, °C)</label>
+                                <input type="text" id="unit-${tagName}" value="${config.unit || ''}" onchange="handleConfigChange('${tagName}')">
+                            </div>
+                        </div>
+                    `;
+                }
+
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td><strong>${tagName}</strong></td>
-                    <td><span class="live-value" style="font-size: 1rem;">${tagValue}</span></td>
-                    <td>
-                        <select id="mtype-${tagName}" onchange="handleConfigChange('${tagName}')">${typeOptions}</select>
-                    </td>
-                    <td>
-                        <select id="amode-${tagName}" onchange="handleConfigChange('${tagName}')">${modeOptions}</select>
-                    </td>
-                    <td>
-                        <select id="wtype-${tagName}" onchange="handleConfigChange('${tagName}')">${widgetOptions}</select>
-                    </td>
+                    <td><strong>${tagName}</strong><br><span style="font-size: 0.8rem; color: #64748B;">Raw: ${tagValue}</span></td>
+                    <td><select id="mtype-${tagName}" onchange="handleConfigChange('${tagName}')">${typeOptions}</select></td>
+                    <td><select id="amode-${tagName}" onchange="handleConfigChange('${tagName}')">${modeOptions}</select></td>
+                    <td><select id="wtype-${tagName}" onchange="handleConfigChange('${tagName}')">${widgetOptions}</select></td>
+                    <td>${mappingHTML}</td>
                 `;
                 tbody.appendChild(tr);
             }
         }
 
-        // --- CONFIGURATION HANDLER ---
         function handleConfigChange(tagName) {
             const mType = document.getElementById(`mtype-${tagName}`).value;
             let aMode = document.getElementById(`amode-${tagName}`).value;
             let wType = document.getElementById(`wtype-${tagName}`).value;
-
-            // Enforce logic rule: If user swaps to X, force Read-Only
             if (mType === 'X') aMode = 'r';
 
-            // Validate that the currently selected widget is still allowed under the new Modbus/Access rules
             const validWidgets = getAvailableWidgets(mType, aMode);
-            const isValidWidget = validWidgets.some(w => w.val === wType);
-            
-            // If the widget is no longer valid (e.g. they changed a Toggle to Read-Only), pick the first safe option
-            if (!isValidWidget) {
-                wType = validWidgets[0].val;
+            if (!validWidgets.some(w => w.val === wType)) wType = validWidgets[0].val;
+
+            let newConfig = { modbusType: mType, accessMode: aMode, widgetType: wType };
+
+            if (mType === 'D') {
+                newConfig.rawMin = document.getElementById(`rmin-${tagName}`).value;
+                newConfig.rawMax = document.getElementById(`rmax-${tagName}`).value;
+                newConfig.scaleMin = document.getElementById(`smin-${tagName}`).value;
+                newConfig.scaleMax = document.getElementById(`smax-${tagName}`).value;
+                newConfig.unit = document.getElementById(`unit-${tagName}`).value;
             }
 
-            // Save the synchronized state to Firebase
-            database.ref('/Gateway_1/UI_Config/' + tagName).set({ 
-                modbusType: mType,
-                accessMode: aMode,
-                widgetType: wType
-            });
+            database.ref('/Gateway_1/UI_Config/' + tagName).set(newConfig);
         }
 
         // --- RENDER DASHBOARD TAB ---
@@ -280,40 +302,59 @@
             const grid = document.getElementById('hmi-grid');
             grid.innerHTML = '';
 
-            for (const [tagName, tagValue] of Object.entries(liveData)) {
-                
+            for (const [tagName, rawValue] of Object.entries(liveData)) {
                 let config = uiConfig[tagName] || getDefaultConfig(tagName);
-                if (config.type && !config.widgetType) config.widgetType = config.type; 
-                if (!config.accessMode) config.accessMode = (config.modbusType === 'X') ? 'r' : 'rw';
+                const wType = config.widgetType || 'number';
+                
+                // Calculate display value (scaled if analog, raw if boolean)
+                let displayValue = config.modbusType === 'D' ? scaleValue(rawValue, config) : rawValue;
+                const unitText = config.unit ? `<span class="unit-label">${config.unit}</span>` : '';
 
-                const wType = config.widgetType;
                 const widget = document.createElement('div');
                 widget.className = 'hmi-widget';
 
                 let controlsHTML = '';
 
+                // === READ ONLY WIDGETS ===
                 if (wType === 'readonly') {
                     controlsHTML = `<span style="color: #64748B; font-size: 0.85rem; padding: 10px 0; display: block;">Display Only</span>`;
                 } 
+                else if (wType === 'datacard') {
+                     controlsHTML = `<div style="text-align: center; padding: 15px 0; font-size: 2rem; font-weight: bold; color: var(--primary-blue);">${displayValue}<span style="font-size: 1rem; color: #64748B; margin-left: 8px;">${config.unit || ''}</span></div>`;
+                }
                 else if (wType === 'led') {
-                    controlsHTML = `
-                        <div class="led-container">
-                            <div class="led ${tagValue > 0 ? 'active' : ''}"></div>
-                        </div>
-                    `;
+                    controlsHTML = `<div class="led-container"><div class="led ${rawValue > 0 ? 'active' : ''}"></div></div>`;
                 }
                 else if (wType === 'progress') {
+                    let percent = ((displayValue - config.scaleMin) / (config.scaleMax - config.scaleMin)) * 100;
                     controlsHTML = `
                         <div style="padding: 10px 0;">
-                            <progress value="${tagValue}" max="100"></progress>
+                            <progress value="${percent}" max="100"></progress>
+                            <div style="display:flex; justify-content:space-between; font-size:0.8rem; color:#64748B;"><span>${config.scaleMin}</span><span>${config.scaleMax}</span></div>
                         </div>
                     `;
                 }
+                else if (wType === 'gauge') {
+                    // Map value to 0-180 degrees for half-circle gauge
+                    let percent = Math.max(0, Math.min(100, ((displayValue - config.scaleMin) / (config.scaleMax - config.scaleMin)) * 100));
+                    let rotation = (percent * 1.8) - 90; // -90 is flat left, +90 is flat right
+                    controlsHTML = `
+                        <div class="gauge-container">
+                            <div class="gauge">
+                                <div class="gauge-fill" style="transform: rotate(${rotation}deg);"></div>
+                                <div class="gauge-cover"></div>
+                            </div>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; font-size:0.8rem; color:#64748B; margin-top:-15px;"><span>${config.scaleMin}</span><span>${config.scaleMax}</span></div>
+                    `;
+                }
+                
+                // === READ/WRITE WIDGETS ===
                 else if (wType === 'toggle') {
                     controlsHTML = `
                         <div style="display: flex; justify-content: center; padding: 10px 0;">
                             <label class="switch">
-                                <input type="checkbox" ${tagValue > 0 ? 'checked' : ''} onchange="sendCommand('${tagName}', this.checked ? 1 : 0)">
+                                <input type="checkbox" ${rawValue > 0 ? 'checked' : ''} onchange="sendCommand('${tagName}', this.checked ? 1 : 0)">
                                 <span class="slider"></span>
                             </label>
                         </div>
@@ -330,21 +371,33 @@
                 }
                 else if (wType === 'slider') {
                     controlsHTML = `
-                        <input type="range" min="0" max="100" value="${tagValue}" onchange="sendCommand('${tagName}', this.value)">
-                        <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #64748B;"><span>0</span><span>100</span></div>
+                        <input type="range" min="${config.scaleMin}" max="${config.scaleMax}" value="${displayValue}" onchange="sendMappedCommand('${tagName}', this.value)">
+                        <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #64748B;"><span>${config.scaleMin}</span><span>${config.scaleMax}</span></div>
+                    `;
+                }
+                else if (wType === 'dropdown') {
+                    controlsHTML = `
+                        <select onchange="sendMappedCommand('${tagName}', this.value)">
+                            <option value="0" ${displayValue == 0 ? 'selected' : ''}>State 0 (Off/Stop)</option>
+                            <option value="1" ${displayValue == 1 ? 'selected' : ''}>State 1 (Low/Run)</option>
+                            <option value="2" ${displayValue == 2 ? 'selected' : ''}>State 2 (High/Fault)</option>
+                        </select>
                     `;
                 }
                 else {
+                    // Default Number Input
                     controlsHTML = `
-                        <input type="number" id="input_${tagName}" placeholder="Enter new value">
-                        <button class="btn" onclick="sendNumberCommand('${tagName}')">Set Value</button>
+                        <input type="number" id="input_${tagName}" placeholder="Enter target (${config.unit || 'value'})">
+                        <button class="btn" onclick="sendNumberCommand('${tagName}')">Set Target</button>
                     `;
                 }
 
                 widget.innerHTML = `
                     <div class="hmi-header">
                         <span>${tagName}</span>
-                        <span class="live-value">${tagValue}</span>
+                        <div>
+                            <span class="live-value">${displayValue}</span>${unitText}
+                        </div>
                     </div>
                     <div>${controlsHTML}</div>
                 `;
@@ -353,15 +406,24 @@
         }
 
         // --- COMMANDS ---
-        function sendCommand(tagName, value) {
-            database.ref('/Gateway_1/Command/' + tagName).set(parseInt(value));
+        // Sends raw integer value directly
+        function sendCommand(tagName, rawValue) {
+            database.ref('/Gateway_1/Command/' + tagName).set(parseInt(rawValue));
         }
 
+        // Accepts scaled UI value, un-scales it to Raw, and sends to Firebase
+        function sendMappedCommand(tagName, scaledValue) {
+            let config = uiConfig[tagName] || getDefaultConfig(tagName);
+            let rawVal = unscaleValue(parseFloat(scaledValue), config);
+            sendCommand(tagName, rawVal);
+        }
+
+        // Helper for the number input button
         function sendNumberCommand(tagName) {
             const inputElement = document.getElementById('input_' + tagName);
-            const value = parseInt(inputElement.value);
-            if (!isNaN(value)) {
-                sendCommand(tagName, value);
+            const scaledValue = parseFloat(inputElement.value);
+            if (!isNaN(scaledValue)) {
+                sendMappedCommand(tagName, scaledValue);
                 inputElement.value = ''; 
             }
         }
