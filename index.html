@@ -3,12 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cloud HMI - Pro</title>
+    <title>Cloud HMI - Pro Edition</title>
     
+    <!-- Firebase Libraries -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
     <style>
+        /* --- GLOBAL STYLES --- */
         :root { 
             --primary-blue: #1A365D; --secondary-blue: #2B6CB0; 
             --bg-color: #F8FAFC; --surface-color: #FFFFFF; 
@@ -20,7 +22,7 @@
         .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
         .card { background: var(--surface-color); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 1.5rem;}
         
-        /* Tabs */
+        /* --- TABS --- */
         .tabs { display: flex; border-bottom: 2px solid var(--border-color); margin-bottom: 1.5rem; gap: 1rem; }
         .tab-btn { background: none; border: none; padding: 0.75rem 1.5rem; font-size: 1rem; font-weight: 600; color: #64748B; cursor: pointer; border-bottom: 3px solid transparent; }
         .tab-btn:hover, .tab-btn.active { color: var(--primary-blue); }
@@ -29,27 +31,32 @@
         .tab-content.active { display: block; animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* HMI Grid */
+        /* --- DASHBOARD GRID --- */
         #hmi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
         .hmi-widget { border: 1px solid var(--border-color); border-radius: 6px; padding: 1rem; background: var(--bg-color); display: flex; flex-direction: column; justify-content: space-between; min-height: 110px;}
         .hmi-header { display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 1.1rem; color: var(--primary-blue); margin-bottom: 0.5rem;}
         .live-value { font-family: monospace; font-size: 1.2rem; font-weight: bold; color: var(--secondary-blue); background: #EFF6FF; padding: 0.2rem 0.6rem; border-radius: 4px; }
         .unit-label { font-size: 0.8rem; color: #64748B; margin-left: 4px; }
         
-        /* Basic Controls */
+        /* --- WIDGET CONTROLS --- */
         input[type="number"], input[type="text"], select { width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px; box-sizing: border-box; margin-bottom: 0.5rem;}
         button.btn { width: 100%; background: var(--secondary-blue); color: white; border: none; cursor: pointer; font-weight: 600; padding: 0.5rem; border-radius: 4px; transition: 0.2s; }
         button.btn:hover { background: var(--primary-blue); }
         button.btn-push { background: #64748B; height: 50px; font-size: 1.1rem; user-select: none; border-radius: 6px;}
         button.btn-push:active { background: var(--success); }
 
-        /* Switch, Gauge, Progress */
+        /* Switches & LEDs */
         .switch { position: relative; display: inline-block; width: 50px; height: 28px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .3s; border-radius: 34px; }
         .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: white; transition: .3s; border-radius: 50%; }
         input:checked + .slider { background-color: var(--success); }
         input:checked + .slider:before { transform: translateX(22px); }
+        .led-container { display: flex; align-items: center; justify-content: center; height: 50px; }
+        .led { width: 24px; height: 24px; border-radius: 50%; background-color: #94A3B8; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); transition: 0.2s; }
+        .led.active { background-color: var(--success); box-shadow: 0 0 15px var(--success), inset 0 2px 4px rgba(255,255,255,0.4); }
+
+        /* Bars & Gauges */
         progress { width: 100%; height: 20px; border-radius: 10px; overflow: hidden; appearance: none; }
         progress::-webkit-progress-bar { background-color: #E2E8F0; }
         progress::-webkit-progress-value { background-color: var(--secondary-blue); }
@@ -58,19 +65,19 @@
         .gauge-fill { width: 100%; height: 100%; background: var(--secondary-blue); transform-origin: bottom center; transform: rotate(0deg); transition: transform 0.5s ease-out; position: absolute; bottom: 0; }
         .gauge-cover { width: 90px; height: 45px; background: var(--bg-color); border-radius: 90px 90px 0 0; position: absolute; bottom: 0; left: 15px; }
 
-        /* NEW: Counter Inputs */
+        /* Sliders */
+        input[type=range] { width: 100%; margin: 10px 0; cursor: pointer; }
+        .vslider-wrapper { display: flex; justify-content: center; height: 120px; margin: 10px 0; }
+        input[type=range][orient=vertical] { writing-mode: bt-lr; -webkit-appearance: slider-vertical; width: 12px; height: 100%; padding: 0; }
+
+        /* Counter (+/-) */
         .counter-container { display: flex; align-items: center; gap: 0.5rem; margin: 10px 0; }
         .btn-counter { width: 45px; height: 40px; font-size: 1.4rem; display: flex; align-items: center; justify-content: center; background: #E2E8F0; color: #334155; border: 1px solid #cbd5e1; border-radius: 4px; cursor: pointer; padding: 0;}
         .btn-counter:hover { background: #cbd5e1; }
         .btn-counter:active { transform: scale(0.95); background: var(--secondary-blue); color: white; }
         .counter-input { flex-grow: 1; text-align: center; font-size: 1.2rem; font-weight: bold; margin: 0; padding: 0.4rem; border: 1px solid var(--border-color); border-radius: 4px; }
 
-        /* NEW: Sliders (Horizontal & Vertical) */
-        input[type=range] { width: 100%; margin: 10px 0; cursor: pointer; }
-        .vslider-wrapper { display: flex; justify-content: center; height: 120px; margin: 10px 0; }
-        input[type=range][orient=vertical] { writing-mode: bt-lr; -webkit-appearance: slider-vertical; width: 12px; height: 100%; padding: 0; }
-
-        /* NEW: Rotary Knob */
+        /* Rotary Knob */
         .knob-wrapper { display: flex; flex-direction: column; align-items: center; margin: 10px 0; }
         .knob-base { width: 70px; height: 70px; border-radius: 50%; background: linear-gradient(135deg, #f1f5f9, #cbd5e1); box-shadow: 0 4px 6px rgba(0,0,0,0.1), inset 0 2px 4px rgba(255,255,255,0.8); display: flex; justify-content: center; align-items: center; cursor: grab; border: 1px solid #94A3B8; position: relative;}
         .knob-base:active { cursor: grabbing; }
@@ -78,18 +85,11 @@
         .knob-pointer { position: absolute; width: 4px; height: 14px; background: var(--success); top: 4px; left: 50%; transform: translateX(-50%); border-radius: 2px; box-shadow: 0 0 4px var(--success); }
         .knob-help { font-size: 0.7rem; color: #94a3b8; margin-top: 5px; text-transform: uppercase; }
 
-        /* Status LED */
-        .led-container { display: flex; align-items: center; justify-content: center; height: 50px; }
-        .led { width: 24px; height: 24px; border-radius: 50%; background-color: #94A3B8; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); transition: 0.2s; }
-        .led.active { background-color: var(--success); box-shadow: 0 0 15px var(--success), inset 0 2px 4px rgba(255,255,255,0.4); }
-
-        /* Settings Table */
+        /* --- SETTINGS TABLE --- */
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 0.75rem; border-bottom: 1px solid var(--border-color); text-align: left; vertical-align: top;}
         .status-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #EF4444; margin-right: 8px; }
         .status-online { background: #10B981; }
-
-        /* Mapping Config Block */
         .mapping-config { background: #F1F5F9; padding: 10px; border-radius: 6px; margin-top: 5px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.85rem;}
         .mapping-config input { padding: 0.3rem; margin-bottom: 0; font-size: 0.85rem;}
         .mapping-config label { display: block; margin-bottom: 2px; font-weight: bold; color: #475569;}
@@ -132,8 +132,10 @@
     </div>
 
     <script>
+        // ==========================================
+        // 1. FIREBASE CONFIGURATION
+        // ==========================================
         const firebaseConfig = {
-            // INSERT YOUR FIREBASE CONFIG HERE
             apiKey: "AIzaSyA08M6S_iORA8_THJfgxCuOwZp_hwmdNwY",
             databaseURL: "https://iotgateway-d2af4-default-rtdb.asia-southeast1.firebasedatabase.app/"
         };
@@ -143,6 +145,9 @@
         let liveData = {};
         let uiConfig = {};
 
+        // ==========================================
+        // 2. WIDGET RULES & DEFAULTS
+        // ==========================================
         function getAvailableWidgets(mType, aMode) {
             if (mType === 'X') {
                 return [{ val: 'led', text: 'Status LED' }, { val: 'readonly', text: 'Read Only Text' }];
@@ -179,6 +184,9 @@
             return { ...base, modbusType: 'D', accessMode: 'rw', widgetType: 'slider' };
         }
 
+        // ==========================================
+        // 3. MATH: SCALING ENGINE
+        // ==========================================
         function scaleValue(raw, config) {
             if (config.modbusType !== 'D' || config.rawMin === undefined) return raw;
             const rMin = parseFloat(config.rawMin); const rMax = parseFloat(config.rawMax);
@@ -197,11 +205,24 @@
             return Math.round(raw);
         }
 
+        function calcKnobAngle(val, min, max) {
+            let percent = (val - min) / (max - min);
+            percent = Math.max(0, Math.min(1, percent));
+            return (percent * 270) - 135; 
+        }
+
+        // ==========================================
+        // 4. FIREBASE LISTENERS
+        // ==========================================
         const liveRef = database.ref('/Gateway_1/Live');
         const configRef = database.ref('/Gateway_1/UI_Config');
 
         configRef.on('value', (snapshot) => { uiConfig = snapshot.val() || {}; if(Object.keys(liveData).length > 0) updateUI(); });
+        
         liveRef.on('value', (snapshot) => {
+            // Prevent UI jumping while user is actively dragging a knob
+            if (activeKnob) return; 
+
             liveData = snapshot.val();
             const statusDot = document.getElementById('conn-status');
             if (liveData) { statusDot.classList.add('status-online'); updateUI(); } 
@@ -210,6 +231,9 @@
 
         function updateUI() { renderSettings(); renderDashboard(); }
 
+        // ==========================================
+        // 5. RENDER SETTINGS TAB
+        // ==========================================
         function renderSettings() {
             const tbody = document.getElementById('settings-table-body');
             tbody.innerHTML = '';
@@ -261,12 +285,9 @@
             database.ref('/Gateway_1/UI_Config/' + tagName).set(newConfig);
         }
 
-        function calcKnobAngle(val, min, max) {
-            let percent = (val - min) / (max - min);
-            percent = Math.max(0, Math.min(1, percent));
-            return (percent * 270) - 135; // Maps 0-100% to -135deg to +135deg
-        }
-
+        // ==========================================
+        // 6. RENDER DASHBOARD TAB
+        // ==========================================
         function renderDashboard() {
             const grid = document.getElementById('hmi-grid');
             grid.innerHTML = '';
@@ -281,7 +302,7 @@
                 widget.className = 'hmi-widget';
                 let controlsHTML = '';
 
-                // NEW: Counter (+ / -)
+                // Counter (+ / -)
                 if (wType === 'counter') {
                     controlsHTML = `
                         <div class="counter-container">
@@ -291,21 +312,21 @@
                         </div>
                     `;
                 }
-                // NEW: Vertical Slider
+                // Vertical Slider (NOTE: uses oninput for real-time tracking)
                 else if (wType === 'vslider') {
                     controlsHTML = `
                         <div class="vslider-wrapper">
-                            <input type="range" orient="vertical" min="${config.scaleMin}" max="${config.scaleMax}" value="${displayValue}" onchange="sendMappedCommand('${tagName}', this.value)">
+                            <input type="range" orient="vertical" min="${config.scaleMin}" max="${config.scaleMax}" value="${displayValue}" oninput="sendMappedCommand('${tagName}', this.value)">
                         </div>
                         <div style="text-align:center; font-size: 0.8rem; color: #64748B;">Range: ${config.scaleMin} - ${config.scaleMax}</div>
                     `;
                 }
-                // NEW: Rotary Knob
+                // Rotary Knob
                 else if (wType === 'knob') {
                     controlsHTML = `
                         <div class="knob-wrapper">
                             <div class="knob-base" onmousedown="startKnobDrag(event, '${tagName}')" ontouchstart="startKnobDrag(event, '${tagName}')">
-                                <div class="knob-dial" style="transform: rotate(${calcKnobAngle(displayValue, config.scaleMin, config.scaleMax)}deg);">
+                                <div class="knob-dial" id="knob-dial-${tagName}" style="transform: rotate(${calcKnobAngle(displayValue, config.scaleMin, config.scaleMax)}deg);">
                                     <div class="knob-pointer"></div>
                                 </div>
                             </div>
@@ -313,14 +334,15 @@
                         </div>
                     `;
                 }
-                // Existing: Horizontal Slider
+                // Horizontal Slider (NOTE: uses oninput for real-time tracking)
                 else if (wType === 'slider') {
                     controlsHTML = `
-                        <input type="range" min="${config.scaleMin}" max="${config.scaleMax}" value="${displayValue}" onchange="sendMappedCommand('${tagName}', this.value)">
+                        <input type="range" min="${config.scaleMin}" max="${config.scaleMax}" value="${displayValue}" oninput="sendMappedCommand('${tagName}', this.value)">
                         <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #64748B;"><span>${config.scaleMin}</span><span>${config.scaleMax}</span></div>
                     `;
                 }
-                // Existing Read-Only and other widgets...
+                // Read-Only Display
+                else if (wType === 'readonly') { controlsHTML = `<span style="color: #64748B; font-size: 0.85rem; padding: 10px 0; display: block;">Display Only</span>`; }
                 else if (wType === 'datacard') { controlsHTML = `<div style="text-align: center; padding: 15px 0; font-size: 2rem; font-weight: bold; color: var(--primary-blue);">${displayValue}<span style="font-size: 1rem; color: #64748B; margin-left: 8px;">${config.unit || ''}</span></div>`; }
                 else if (wType === 'led') { controlsHTML = `<div class="led-container"><div class="led ${rawValue > 0 ? 'active' : ''}"></div></div>`; }
                 else if (wType === 'progress') {
@@ -332,19 +354,37 @@
                     let rotation = (percent * 1.8) - 90; 
                     controlsHTML = `<div class="gauge-container"><div class="gauge"><div class="gauge-fill" style="transform: rotate(${rotation}deg);"></div><div class="gauge-cover"></div></div></div><div style="display:flex; justify-content:space-between; font-size:0.8rem; color:#64748B; margin-top:-15px;"><span>${config.scaleMin}</span><span>${config.scaleMax}</span></div>`;
                 }
+                // Standard I/O
                 else if (wType === 'toggle') { controlsHTML = `<div style="display: flex; justify-content: center; padding: 10px 0;"><label class="switch"><input type="checkbox" ${rawValue > 0 ? 'checked' : ''} onchange="sendCommand('${tagName}', this.checked ? 1 : 0)"><span class="slider"></span></label></div>`; }
                 else if (wType === 'push') { controlsHTML = `<button class="btn btn-push" onmousedown="sendCommand('${tagName}', 1)" onmouseup="sendCommand('${tagName}', 0)" onmouseleave="if(event.buttons === 1) sendCommand('${tagName}', 0)" ontouchstart="sendCommand('${tagName}', 1); event.preventDefault();" ontouchend="sendCommand('${tagName}', 0); event.preventDefault();">HOLD TO ACTIVATE</button>`; }
+                else if (wType === 'dropdown') {
+                    controlsHTML = `<select onchange="sendMappedCommand('${tagName}', this.value)">
+                        <option value="0" ${displayValue == 0 ? 'selected' : ''}>State 0 (Off/Stop)</option>
+                        <option value="1" ${displayValue == 1 ? 'selected' : ''}>State 1 (Low/Run)</option>
+                        <option value="2" ${displayValue == 2 ? 'selected' : ''}>State 2 (High/Fault)</option>
+                    </select>`;
+                }
                 else {
                     controlsHTML = `<input type="number" id="input_${tagName}" placeholder="Enter target (${config.unit || 'value'})"><button class="btn" onclick="sendNumberCommand('${tagName}')">Set Target</button>`;
                 }
 
-                widget.innerHTML = `<div class="hmi-header"><span>${tagName}</span><div><span class="live-value">${displayValue}</span>${unitText}</div></div><div>${controlsHTML}</div>`;
+                // Add an ID to the live value span so the knob can update it directly without redrawing the whole UI
+                widget.innerHTML = `<div class="hmi-header"><span>${tagName}</span><div><span class="live-value" id="val-${tagName}">${displayValue}</span>${unitText}</div></div><div>${controlsHTML}</div>`;
                 grid.appendChild(widget);
             }
         }
 
-        // --- INTERACTION HANDLERS ---
-        function sendCommand(tagName, rawValue) { database.ref('/Gateway_1/Command/' + tagName).set(parseInt(rawValue)); }
+        // ==========================================
+        // 7. FIREBASE COMMAND / OPTIMISTIC UI ENGINE
+        // ==========================================
+        
+        function sendCommand(tagName, rawValue) { 
+            const val = parseInt(rawValue);
+            // 1. Send the command to the physical gateway
+            database.ref('/Gateway_1/Command/' + tagName).set(val); 
+            // 2. Optimistic UI Update: Force the Live node to update immediately
+            database.ref('/Gateway_1/Live/' + tagName).set(val); 
+        }
         
         function sendMappedCommand(tagName, scaledValue) {
             let config = uiConfig[tagName] || getDefaultConfig(tagName);
@@ -362,17 +402,17 @@
         function adjustCounter(tagName, direction) {
             let config = uiConfig[tagName] || getDefaultConfig(tagName);
             let currentScaled = scaleValue(liveData[tagName], config);
-            
-            // Calculate a smart step size (1% of total range, minimum 1)
             let range = parseFloat(config.scaleMax) - parseFloat(config.scaleMin);
             let step = Math.max(1, Math.round(range * 0.01)); 
             
             let newVal = parseFloat(currentScaled) + (direction * step);
-            newVal = Math.max(config.scaleMin, Math.min(config.scaleMax, newVal)); // Clamp to min/max
+            newVal = Math.max(config.scaleMin, Math.min(config.scaleMax, newVal)); 
             sendMappedCommand(tagName, newVal);
         }
 
-        // Handlers for Rotary Knob (Vertical Drag to Turn)
+        // ==========================================
+        // 8. ROTARY KNOB LOGIC
+        // ==========================================
         let activeKnob = null;
         let knobStartY = 0;
         let knobStartVal = 0;
@@ -395,13 +435,21 @@
             if (!activeKnob) return;
             e.preventDefault();
             let currentY = e.touches ? e.touches[0].clientY : e.clientY;
-            let deltaY = knobStartY - currentY; // Moving mouse up generates positive delta
+            let deltaY = knobStartY - currentY; // Moving up generates positive delta
             
-            // 150px drag represents the full min-to-max range
+            // 150px drag covers the full min-to-max range
             let range = activeKnob.max - activeKnob.min;
             let newVal = knobStartVal + (deltaY / 150) * range; 
             newVal = Math.max(activeKnob.min, Math.min(activeKnob.max, newVal)); // Clamp
             
+            // Visually turn the knob immediately
+            let rotation = calcKnobAngle(newVal, activeKnob.min, activeKnob.max);
+            document.getElementById(`knob-dial-${activeKnob.tag}`).style.transform = `rotate(${rotation}deg)`;
+            
+            // Update the display text immediately
+            document.getElementById(`val-${activeKnob.tag}`).innerText = Math.round(newVal * 100) / 100;
+
+            // Send to Firebase
             sendMappedCommand(activeKnob.tag, newVal);
         }
 
@@ -413,6 +461,9 @@
             document.removeEventListener('touchend', stopKnobDrag);
         }
 
+        // ==========================================
+        // 9. UI TAB SWITCHER
+        // ==========================================
         function switchTab(tabId) {
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
