@@ -77,9 +77,9 @@
         .btn-counter:active { transform: scale(0.95); background: var(--secondary-blue); color: white; }
         .counter-input { flex-grow: 1; text-align: center; font-size: 1.2rem; font-weight: bold; margin: 0; padding: 0.4rem; border: 1px solid var(--border-color); border-radius: 4px; }
 
-        /* Rotary Knob */
+        /* Rotary Knob - Note: touch-action: none prevents mobile scrolling */
         .knob-wrapper { display: flex; flex-direction: column; align-items: center; margin: 10px 0; }
-        .knob-base { width: 70px; height: 70px; border-radius: 50%; background: linear-gradient(135deg, #f1f5f9, #cbd5e1); box-shadow: 0 4px 6px rgba(0,0,0,0.1), inset 0 2px 4px rgba(255,255,255,0.8); display: flex; justify-content: center; align-items: center; cursor: grab; border: 1px solid #94A3B8; position: relative;}
+        .knob-base { width: 70px; height: 70px; border-radius: 50%; background: linear-gradient(135deg, #f1f5f9, #cbd5e1); box-shadow: 0 4px 6px rgba(0,0,0,0.1), inset 0 2px 4px rgba(255,255,255,0.8); display: flex; justify-content: center; align-items: center; cursor: grab; border: 1px solid #94A3B8; position: relative; touch-action: none;}
         .knob-base:active { cursor: grabbing; }
         .knob-dial { width: 50px; height: 50px; border-radius: 50%; background: #334155; position: relative; pointer-events: none; }
         .knob-pointer { position: absolute; width: 4px; height: 14px; background: var(--success); top: 4px; left: 50%; transform: translateX(-50%); border-radius: 2px; box-shadow: 0 0 4px var(--success); }
@@ -99,7 +99,7 @@
 <body>
 
     <header>
-        <h2><span id="conn-status" class="status-dot"></span> Cloud HMI - Advanced Inputs</h2>
+        <h2><span id="conn-status" class="status-dot"></span> Cloud HMI - Safe Edition</h2>
     </header>
 
     <div class="container">
@@ -220,9 +220,7 @@
         configRef.on('value', (snapshot) => { uiConfig = snapshot.val() || {}; if(Object.keys(liveData).length > 0) updateUI(); });
         
         liveRef.on('value', (snapshot) => {
-            // Prevent UI jumping while user is actively dragging a knob
             if (activeKnob) return; 
-
             liveData = snapshot.val();
             const statusDot = document.getElementById('conn-status');
             if (liveData) { statusDot.classList.add('status-online'); updateUI(); } 
@@ -275,13 +273,26 @@
             if (!validWidgets.some(w => w.val === wType)) wType = validWidgets[0].val;
 
             let newConfig = { modbusType: mType, accessMode: aMode, widgetType: wType };
+            
+            // MATH VALIDATION FIX
             if (mType === 'D') {
-                newConfig.rawMin = document.getElementById(`rmin-${tagName}`).value;
-                newConfig.rawMax = document.getElementById(`rmax-${tagName}`).value;
-                newConfig.scaleMin = document.getElementById(`smin-${tagName}`).value;
-                newConfig.scaleMax = document.getElementById(`smax-${tagName}`).value;
+                let rMin = parseFloat(document.getElementById(`rmin-${tagName}`).value);
+                let rMax = parseFloat(document.getElementById(`rmax-${tagName}`).value);
+                let sMin = parseFloat(document.getElementById(`smin-${tagName}`).value);
+                let sMax = parseFloat(document.getElementById(`smax-${tagName}`).value);
+
+                if (rMin === rMax || sMin === sMax) {
+                    alert("Validation Error:\nMin and Max values cannot be identical. Please adjust your scaling to avoid divide-by-zero errors.");
+                    return; // Abort save operation
+                }
+
+                newConfig.rawMin = rMin;
+                newConfig.rawMax = rMax;
+                newConfig.scaleMin = sMin;
+                newConfig.scaleMax = sMax;
                 newConfig.unit = document.getElementById(`unit-${tagName}`).value;
             }
+            
             database.ref('/Gateway_1/UI_Config/' + tagName).set(newConfig);
         }
 
@@ -312,7 +323,7 @@
                         </div>
                     `;
                 }
-                // Vertical Slider (NOTE: uses oninput for real-time tracking)
+                // Vertical Slider
                 else if (wType === 'vslider') {
                     controlsHTML = `
                         <div class="vslider-wrapper">
@@ -334,7 +345,7 @@
                         </div>
                     `;
                 }
-                // Horizontal Slider (NOTE: uses oninput for real-time tracking)
+                // Horizontal Slider
                 else if (wType === 'slider') {
                     controlsHTML = `
                         <input type="range" min="${config.scaleMin}" max="${config.scaleMax}" value="${displayValue}" oninput="sendMappedCommand('${tagName}', this.value)">
@@ -354,8 +365,10 @@
                     let rotation = (percent * 1.8) - 90; 
                     controlsHTML = `<div class="gauge-container"><div class="gauge"><div class="gauge-fill" style="transform: rotate(${rotation}deg);"></div><div class="gauge-cover"></div></div></div><div style="display:flex; justify-content:space-between; font-size:0.8rem; color:#64748B; margin-top:-15px;"><span>${config.scaleMin}</span><span>${config.scaleMax}</span></div>`;
                 }
-                // Standard I/O
-                else if (wType === 'toggle') { controlsHTML = `<div style="display: flex; justify-content: center; padding: 10px 0;"><label class="switch"><input type="checkbox" ${rawValue > 0 ? 'checked' : ''} onchange="sendCommand('${tagName}', this.checked ? 1 : 0)"><span class="slider"></span></label></div>`; }
+                // TOGGLE FIX - Added confirm popup
+                else if (wType === 'toggle') { 
+                    controlsHTML = `<div style="display: flex; justify-content: center; padding: 10px 0;"><label class="switch"><input type="checkbox" ${rawValue > 0 ? 'checked' : ''} onclick="confirmToggle(event, '${tagName}', this)"><span class="slider"></span></label></div>`; 
+                }
                 else if (wType === 'push') { controlsHTML = `<button class="btn btn-push" onmousedown="sendCommand('${tagName}', 1)" onmouseup="sendCommand('${tagName}', 0)" onmouseleave="if(event.buttons === 1) sendCommand('${tagName}', 0)" ontouchstart="sendCommand('${tagName}', 1); event.preventDefault();" ontouchend="sendCommand('${tagName}', 0); event.preventDefault();">HOLD TO ACTIVATE</button>`; }
                 else if (wType === 'dropdown') {
                     controlsHTML = `<select onchange="sendMappedCommand('${tagName}', this.value)">
@@ -364,25 +377,22 @@
                         <option value="2" ${displayValue == 2 ? 'selected' : ''}>State 2 (High/Fault)</option>
                     </select>`;
                 }
+                // NUMBER FIX - Added confirm popup to Set Target
                 else {
-                    controlsHTML = `<input type="number" id="input_${tagName}" placeholder="Enter target (${config.unit || 'value'})"><button class="btn" onclick="sendNumberCommand('${tagName}')">Set Target</button>`;
+                    controlsHTML = `<input type="number" id="input_${tagName}" placeholder="Enter target (${config.unit || 'value'})"><button class="btn" onclick="confirmNumberCommand('${tagName}')">Set Target</button>`;
                 }
 
-                // Add an ID to the live value span so the knob can update it directly without redrawing the whole UI
                 widget.innerHTML = `<div class="hmi-header"><span>${tagName}</span><div><span class="live-value" id="val-${tagName}">${displayValue}</span>${unitText}</div></div><div>${controlsHTML}</div>`;
                 grid.appendChild(widget);
             }
         }
 
         // ==========================================
-        // 7. FIREBASE COMMAND / OPTIMISTIC UI ENGINE
+        // 7. FIREBASE COMMAND & SAFETY INTERCEPTS
         // ==========================================
-        
         function sendCommand(tagName, rawValue) { 
             const val = parseInt(rawValue);
-            // 1. Send the command to the physical gateway
             database.ref('/Gateway_1/Command/' + tagName).set(val); 
-            // 2. Optimistic UI Update: Force the Live node to update immediately
             database.ref('/Gateway_1/Live/' + tagName).set(val); 
         }
         
@@ -392,10 +402,27 @@
             sendCommand(tagName, rawVal);
         }
 
-        function sendNumberCommand(tagName) {
+        // ACCIDENTAL BUMP PROTECTION: Toggle Intercept
+        function confirmToggle(event, tagName, checkbox) {
+            event.preventDefault(); // Stop immediate HTML change
+            const targetState = checkbox.checked ? 1 : 0;
+            const actionText = targetState === 1 ? "TURN ON" : "TURN OFF";
+            
+            if (confirm(`⚠️ SAFETY WARNING:\nAre you sure you want to ${actionText} ${tagName}?`)) {
+                sendCommand(tagName, targetState);
+            }
+        }
+
+        // ACCIDENTAL BUMP PROTECTION: Number Intercept
+        function confirmNumberCommand(tagName) {
             const inputElement = document.getElementById('input_' + tagName);
             const scaledValue = parseFloat(inputElement.value);
-            if (!isNaN(scaledValue)) { sendMappedCommand(tagName, scaledValue); inputElement.value = ''; }
+            if (!isNaN(scaledValue)) { 
+                if (confirm(`⚠️ SAFETY WARNING:\nAre you sure you want to set ${tagName} to ${scaledValue}?`)) {
+                    sendMappedCommand(tagName, scaledValue); 
+                    inputElement.value = ''; 
+                }
+            }
         }
 
         // Handler for Counter (+/-)
@@ -435,21 +462,16 @@
             if (!activeKnob) return;
             e.preventDefault();
             let currentY = e.touches ? e.touches[0].clientY : e.clientY;
-            let deltaY = knobStartY - currentY; // Moving up generates positive delta
+            let deltaY = knobStartY - currentY; 
             
-            // 150px drag covers the full min-to-max range
             let range = activeKnob.max - activeKnob.min;
             let newVal = knobStartVal + (deltaY / 150) * range; 
-            newVal = Math.max(activeKnob.min, Math.min(activeKnob.max, newVal)); // Clamp
+            newVal = Math.max(activeKnob.min, Math.min(activeKnob.max, newVal)); 
             
-            // Visually turn the knob immediately
             let rotation = calcKnobAngle(newVal, activeKnob.min, activeKnob.max);
             document.getElementById(`knob-dial-${activeKnob.tag}`).style.transform = `rotate(${rotation}deg)`;
-            
-            // Update the display text immediately
             document.getElementById(`val-${activeKnob.tag}`).innerText = Math.round(newVal * 100) / 100;
 
-            // Send to Firebase
             sendMappedCommand(activeKnob.tag, newVal);
         }
 
