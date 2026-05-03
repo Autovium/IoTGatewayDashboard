@@ -43,26 +43,27 @@
         button.btn { width: 100%; background: var(--secondary-blue); color: white; border: none; cursor: pointer; font-weight: 600; padding: 0.5rem; border-radius: 4px; transition: 0.2s; }
         button.btn:hover { background: var(--primary-blue); }
         button.btn-push { background: #64748B; height: 50px; font-size: 1.1rem; user-select: none; border-radius: 6px;}
-        button.btn-push:active { background: var(--success); }
+        button.btn-push:active { background: var(--active-color, var(--success)); }
 
         /* Switches & LEDs */
         .switch { position: relative; display: inline-block; width: 50px; height: 28px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .3s; border-radius: 34px; }
         .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: white; transition: .3s; border-radius: 50%; }
-        input:checked + .slider { background-color: var(--success); }
+        input:checked + .slider { background-color: var(--active-color, var(--success)); }
         input:checked + .slider:before { transform: translateX(22px); }
+        
         .led-container { display: flex; align-items: center; justify-content: center; height: 50px; }
         .led { width: 24px; height: 24px; border-radius: 50%; background-color: #94A3B8; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); transition: 0.2s; }
-        .led.active { background-color: var(--success); box-shadow: 0 0 15px var(--success), inset 0 2px 4px rgba(255,255,255,0.4); }
 
         /* Bars & Gauges */
         progress { width: 100%; height: 20px; border-radius: 10px; overflow: hidden; appearance: none; }
         progress::-webkit-progress-bar { background-color: #E2E8F0; }
-        progress::-webkit-progress-value { background-color: var(--secondary-blue); }
+        progress::-webkit-progress-value { background-color: var(--active-color, var(--secondary-blue)); }
+        progress::-moz-progress-bar { background-color: var(--active-color, var(--secondary-blue)); }
+        
         .gauge-container { width: 100%; display: flex; justify-content: center; margin: 10px 0;}
-        .gauge { width: 120px; height: 60px; background: #E2E8F0; border-radius: 120px 120px 0 0; position: relative; overflow: hidden; }
-        .gauge-fill { width: 100%; height: 100%; background: var(--secondary-blue); transform-origin: bottom center; transform: rotate(0deg); transition: transform 0.5s ease-out; position: absolute; bottom: 0; }
+        .gauge { width: 120px; height: 60px; border-radius: 120px 120px 0 0; position: relative; overflow: hidden; }
         .gauge-cover { width: 90px; height: 45px; background: var(--bg-color); border-radius: 90px 90px 0 0; position: absolute; bottom: 0; left: 15px; }
 
         /* Sliders */
@@ -74,7 +75,7 @@
         .counter-container { display: flex; align-items: center; gap: 0.5rem; margin: 10px 0; }
         .btn-counter { width: 45px; height: 40px; font-size: 1.4rem; display: flex; align-items: center; justify-content: center; background: #E2E8F0; color: #334155; border: 1px solid #cbd5e1; border-radius: 4px; cursor: pointer; padding: 0;}
         .btn-counter:hover { background: #cbd5e1; }
-        .btn-counter:active { transform: scale(0.95); background: var(--secondary-blue); color: white; }
+        .btn-counter:active { transform: scale(0.95); background: var(--active-color, var(--secondary-blue)); color: white; }
         .counter-input { flex-grow: 1; text-align: center; font-size: 1.2rem; font-weight: bold; margin: 0; padding: 0.4rem; border: 1px solid var(--border-color); border-radius: 4px; }
 
         /* Rotary Knob */
@@ -82,7 +83,7 @@
         .knob-base { width: 70px; height: 70px; border-radius: 50%; background: linear-gradient(135deg, #f1f5f9, #cbd5e1); box-shadow: 0 4px 6px rgba(0,0,0,0.1), inset 0 2px 4px rgba(255,255,255,0.8); display: flex; justify-content: center; align-items: center; cursor: grab; border: 1px solid #94A3B8; position: relative; touch-action: none;}
         .knob-base:active { cursor: grabbing; }
         .knob-dial { width: 50px; height: 50px; border-radius: 50%; background: #334155; position: relative; pointer-events: none; }
-        .knob-pointer { position: absolute; width: 4px; height: 14px; background: var(--success); top: 4px; left: 50%; transform: translateX(-50%); border-radius: 2px; box-shadow: 0 0 4px var(--success); }
+        .knob-pointer { position: absolute; width: 4px; height: 14px; background: var(--active-color, var(--success)); top: 4px; left: 50%; transform: translateX(-50%); border-radius: 2px; box-shadow: 0 0 4px var(--active-color, var(--success)); }
         .knob-help { font-size: 0.7rem; color: #94a3b8; margin-top: 5px; text-transform: uppercase; }
 
         /* --- SETTINGS TABLE --- */
@@ -94,12 +95,13 @@
         .mapping-config input { padding: 0.3rem; margin-bottom: 0; font-size: 0.85rem;}
         .mapping-config label { display: block; margin-bottom: 2px; font-weight: bold; color: #475569;}
         .mapping-col { display: flex; flex-direction: column; gap: 4px;}
+        .color-picker { height: 32px !important; padding: 0 !important; cursor: pointer; border: none; border-radius: 4px; width: 100%;}
     </style>
 </head>
 <body>
 
     <header>
-        <h2><span id="conn-status" class="status-dot"></span> Cloud HMI - Safe Edition</h2>
+        <h2><span id="conn-status" class="status-dot"></span> Cloud HMI - Custom Design</h2>
     </header>
 
     <div class="container">
@@ -123,7 +125,7 @@
                         <th style="width: 15%;">Modbus Type</th>
                         <th style="width: 15%;">Access Mode</th>
                         <th style="width: 25%;">Widget Interface</th>
-                        <th style="width: 30%;">Data Mapping / Scaling</th>
+                        <th style="width: 30%;">Data Mapping / Design</th>
                     </tr>
                 </thead>
                 <tbody id="settings-table-body"></tbody>
@@ -155,46 +157,36 @@
         // 2. WIDGET RULES & DEFAULTS
         // ==========================================
         function getAvailableWidgets(mType, aMode) {
-            if (mType === 'X') {
-                return [{ val: 'led', text: 'Status LED' }, { val: 'readonly', text: 'Read Only Text' }];
-            }
+            if (mType === 'X') return [{ val: 'led', text: 'Status LED' }, { val: 'readonly', text: 'Read Only Text' }];
             if (mType === 'Y' || mType === 'M') {
                 if (aMode === 'r') return [{ val: 'led', text: 'Status LED' }, { val: 'readonly', text: 'Read Only Text' }];
                 return [{ val: 'toggle', text: 'Toggle Switch' }, { val: 'push', text: 'Push Button' }];
             }
             if (mType === 'D') {
-                if (aMode === 'r') {
-                    return [
-                        { val: 'gauge', text: 'Circular Gauge' },
-                        { val: 'progress', text: 'Progress Bar' },
-                        { val: 'datacard', text: 'Value + Units Card' }
-                    ];
-                }
-                return [
-                    { val: 'slider', text: 'Horizontal Slider' },
-                    { val: 'vslider', text: 'Vertical Slider' },
-                    { val: 'counter', text: 'Counter (+ / -)' },
-                    { val: 'knob', text: 'Rotary Volume Knob' },
-                    { val: 'number', text: 'Standard Number Input' },
-                    { val: 'dropdown', text: 'Dropdown Selector' }
-                ];
+                if (aMode === 'r') return [{ val: 'gauge', text: 'Circular Gauge' }, { val: 'progress', text: 'Progress Bar' }, { val: 'datacard', text: 'Value + Units Card' }];
+                return [{ val: 'slider', text: 'Horizontal Slider' }, { val: 'vslider', text: 'Vertical Slider' }, { val: 'counter', text: 'Counter (+ / -)' }, { val: 'knob', text: 'Rotary Volume Knob' }, { val: 'number', text: 'Standard Number Input' }, { val: 'dropdown', text: 'Dropdown Selector' }];
             }
         }
 
         function getDefaultConfig(tagName) {
             const lowerName = tagName.toLowerCase();
-            let base = { rawMin: 0, rawMax: 1000, scaleMin: 0, scaleMax: 100, unit: '' };
+            let base = { rawMin: 0, rawMax: 1000, scaleMin: 0, scaleMax: 100, unit: '', widgetColor: '#2B6CB0' };
             if (lowerName.startsWith('x')) return { ...base, modbusType: 'X', accessMode: 'r', widgetType: 'led' };
             if (lowerName.startsWith('y')) return { ...base, modbusType: 'Y', accessMode: 'rw', widgetType: 'toggle' };
             if (lowerName.startsWith('m')) return { ...base, modbusType: 'M', accessMode: 'rw', widgetType: 'toggle' };
             return { ...base, modbusType: 'D', accessMode: 'rw', widgetType: 'slider' };
         }
 
+        // The "Safe Config" ensures that undefined values NEVER crash the UI
+        function getSafeConfig(tagName) {
+            return { ...getDefaultConfig(tagName), ...(uiConfig[tagName] || {}) };
+        }
+
         // ==========================================
         // 3. MATH: SCALING ENGINE
         // ==========================================
         function scaleValue(raw, config) {
-            if (config.modbusType !== 'D' || config.rawMin === undefined) return raw;
+            if (config.modbusType !== 'D') return raw;
             const rMin = parseFloat(config.rawMin); const rMax = parseFloat(config.rawMax);
             const sMin = parseFloat(config.scaleMin); const sMax = parseFloat(config.scaleMax);
             if (rMax - rMin === 0) return raw;
@@ -203,7 +195,7 @@
         }
 
         function unscaleValue(scaled, config) {
-            if (config.modbusType !== 'D' || config.rawMin === undefined) return scaled;
+            if (config.modbusType !== 'D') return scaled;
             const rMin = parseFloat(config.rawMin); const rMax = parseFloat(config.rawMax);
             const sMin = parseFloat(config.scaleMin); const sMax = parseFloat(config.scaleMax);
             if (sMax - sMin === 0) return scaled;
@@ -226,9 +218,7 @@
         configRef.on('value', (snapshot) => { uiConfig = snapshot.val() || {}; if(Object.keys(liveData).length > 0) updateUI(); });
         
         liveRef.on('value', (snapshot) => {
-            // Prevent UI jumping while user is actively dragging a knob OR a slider
-            if (activeKnob || isDragging) return; 
-            
+            if (activeKnob || isDragging) return; // Prevent DOM thrashing
             liveData = snapshot.val();
             const statusDot = document.getElementById('conn-status');
             if (liveData) { statusDot.classList.add('status-online'); updateUI(); } 
@@ -244,10 +234,11 @@
             const tbody = document.getElementById('settings-table-body');
             tbody.innerHTML = '';
             for (const [tagName, tagValue] of Object.entries(liveData)) {
-                let config = uiConfig[tagName] || getDefaultConfig(tagName);
-                const mType = config.modbusType || 'D';
-                const aMode = config.accessMode || 'rw';
-                const wType = config.widgetType || 'slider';
+                let config = getSafeConfig(tagName);
+                const mType = config.modbusType;
+                const aMode = config.accessMode;
+                const wType = config.widgetType;
+                const wColor = config.widgetColor;
 
                 const typeOptions = `<option value="X" ${mType === 'X' ? 'selected' : ''}>Discrete Input (X)</option><option value="Y" ${mType === 'Y' ? 'selected' : ''}>Physical Output (Y)</option><option value="M" ${mType === 'M' ? 'selected' : ''}>Internal Relay (M)</option><option value="D" ${mType === 'D' ? 'selected' : ''}>Holding Register (D)</option>`;
                 const modeOptions = mType === 'X' ? `<option value="r" selected>Read Only</option>` : `<option value="rw" ${aMode === 'rw' ? 'selected' : ''}>Read / Write</option><option value="r" ${aMode === 'r' ? 'selected' : ''}>Read Only</option>`;
@@ -255,13 +246,19 @@
                 const validWidgets = getAvailableWidgets(mType, aMode);
                 const widgetOptions = validWidgets.map(opt => `<option value="${opt.val}" ${wType === opt.val ? 'selected' : ''}>${opt.text}</option>`).join('');
 
-                let mappingHTML = '<span style="color:#94A3B8; font-size:0.85rem;">N/A for Booleans</span>';
+                let mappingHTML = '';
                 if (mType === 'D') {
                     mappingHTML = `
                         <div class="mapping-config">
-                            <div class="mapping-col"><label>Raw Min & Max (PLC)</label><input type="number" id="rmin-${tagName}" value="${config.rawMin !== undefined ? config.rawMin : 0}" onchange="handleConfigChange('${tagName}')"><input type="number" id="rmax-${tagName}" value="${config.rawMax !== undefined ? config.rawMax : 1000}" onchange="handleConfigChange('${tagName}')"></div>
-                            <div class="mapping-col"><label>Scaled Min & Max (UI)</label><input type="number" id="smin-${tagName}" value="${config.scaleMin !== undefined ? config.scaleMin : 0}" onchange="handleConfigChange('${tagName}')"><input type="number" id="smax-${tagName}" value="${config.scaleMax !== undefined ? config.scaleMax : 100}" onchange="handleConfigChange('${tagName}')"></div>
-                            <div class="mapping-col" style="grid-column: span 2;"><label>Engineering Unit</label><input type="text" id="unit-${tagName}" value="${config.unit || ''}" onchange="handleConfigChange('${tagName}')"></div>
+                            <div class="mapping-col"><label>Raw Min/Max</label><input type="number" id="rmin-${tagName}" value="${config.rawMin}" onchange="handleConfigChange('${tagName}')"><input type="number" id="rmax-${tagName}" value="${config.rawMax}" onchange="handleConfigChange('${tagName}')"></div>
+                            <div class="mapping-col"><label>Scaled Min/Max</label><input type="number" id="smin-${tagName}" value="${config.scaleMin}" onchange="handleConfigChange('${tagName}')"><input type="number" id="smax-${tagName}" value="${config.scaleMax}" onchange="handleConfigChange('${tagName}')"></div>
+                            <div class="mapping-col"><label>Unit Label</label><input type="text" id="unit-${tagName}" value="${config.unit}" onchange="handleConfigChange('${tagName}')"></div>
+                            <div class="mapping-col"><label>Theme Color</label><input type="color" id="color-${tagName}" value="${wColor}" class="color-picker" onchange="handleConfigChange('${tagName}')"></div>
+                        </div>`;
+                } else {
+                    mappingHTML = `
+                        <div class="mapping-config" style="grid-template-columns: 1fr;">
+                            <div class="mapping-col"><label>Theme Color</label><input type="color" id="color-${tagName}" value="${wColor}" class="color-picker" onchange="handleConfigChange('${tagName}')" style="width: 50%;"></div>
                         </div>`;
                 }
 
@@ -282,6 +279,9 @@
 
             let newConfig = { modbusType: mType, accessMode: aMode, widgetType: wType };
             
+            // Save custom color
+            newConfig.widgetColor = document.getElementById(`color-${tagName}`).value;
+
             if (mType === 'D') {
                 let rMin = parseFloat(document.getElementById(`rmin-${tagName}`).value);
                 let rMax = parseFloat(document.getElementById(`rmax-${tagName}`).value);
@@ -289,7 +289,7 @@
                 let sMax = parseFloat(document.getElementById(`smax-${tagName}`).value);
 
                 if (rMin === rMax || sMin === sMax) {
-                    alert("Validation Error:\nMin and Max values cannot be identical. Please adjust your scaling to avoid divide-by-zero errors.");
+                    alert("Validation Error:\nMin and Max values cannot be identical.");
                     return; 
                 }
 
@@ -311,10 +311,11 @@
             grid.innerHTML = '';
 
             for (const [tagName, rawValue] of Object.entries(liveData)) {
-                let config = uiConfig[tagName] || getDefaultConfig(tagName);
-                const wType = config.widgetType || 'number';
+                let config = getSafeConfig(tagName);
+                const wType = config.widgetType;
                 let displayValue = config.modbusType === 'D' ? scaleValue(rawValue, config) : rawValue;
                 const unitText = config.unit ? `<span class="unit-label">${config.unit}</span>` : '';
+                const wColor = config.widgetColor; // Custom user color
 
                 const widget = document.createElement('div');
                 widget.className = 'hmi-widget';
@@ -322,34 +323,29 @@
 
                 if (wType === 'counter') {
                     controlsHTML = `
-                        <div class="counter-container">
+                        <div class="counter-container" style="--active-color: ${wColor}">
                             <button class="btn-counter" onclick="adjustCounter('${tagName}', -1)">-</button>
                             <input type="number" class="counter-input" id="counter_${tagName}" value="${displayValue}" onchange="sendMappedCommand('${tagName}', this.value)">
                             <button class="btn-counter" onclick="adjustCounter('${tagName}', 1)">+</button>
                         </div>
                     `;
                 }
-                // Vertical Slider
                 else if (wType === 'vslider') {
                     controlsHTML = `
                         <div class="vslider-wrapper">
                             <input type="range" orient="vertical" min="${config.scaleMin}" max="${config.scaleMax}" value="${displayValue}" 
-                                onmousedown="isDragging=true" 
-                                onmouseup="isDragging=false" 
-                                onmouseleave="isDragging=false" 
-                                ontouchstart="isDragging=true" 
-                                ontouchend="isDragging=false" 
+                                style="accent-color: ${wColor};"
+                                onmousedown="isDragging=true" onmouseup="isDragging=false" onmouseleave="isDragging=false" ontouchstart="isDragging=true" ontouchend="isDragging=false" 
                                 oninput="document.getElementById('val-${tagName}').innerText = this.value; sendMappedCommand('${tagName}', this.value)">
                         </div>
                         <div style="text-align:center; font-size: 0.8rem; color: #64748B;">Range: ${config.scaleMin} - ${config.scaleMax}</div>
                     `;
                 }
-                // Rotary Knob
                 else if (wType === 'knob') {
                     controlsHTML = `
                         <div class="knob-wrapper">
                             <div class="knob-base" onmousedown="startKnobDrag(event, '${tagName}')" ontouchstart="startKnobDrag(event, '${tagName}')">
-                                <div class="knob-dial" id="knob-dial-${tagName}" style="transform: rotate(${calcKnobAngle(displayValue, config.scaleMin, config.scaleMax)}deg);">
+                                <div class="knob-dial" id="knob-dial-${tagName}" style="transform: rotate(${calcKnobAngle(displayValue, config.scaleMin, config.scaleMax)}deg); --active-color: ${wColor};">
                                     <div class="knob-pointer"></div>
                                 </div>
                             </div>
@@ -357,35 +353,43 @@
                         </div>
                     `;
                 }
-                // Horizontal Slider
                 else if (wType === 'slider') {
                     controlsHTML = `
                         <input type="range" min="${config.scaleMin}" max="${config.scaleMax}" value="${displayValue}" 
-                            onmousedown="isDragging=true" 
-                            onmouseup="isDragging=false" 
-                            onmouseleave="isDragging=false" 
-                            ontouchstart="isDragging=true" 
-                            ontouchend="isDragging=false" 
+                            style="accent-color: ${wColor};"
+                            onmousedown="isDragging=true" onmouseup="isDragging=false" onmouseleave="isDragging=false" ontouchstart="isDragging=true" ontouchend="isDragging=false" 
                             oninput="document.getElementById('val-${tagName}').innerText = this.value; sendMappedCommand('${tagName}', this.value)">
                         <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #64748B;"><span>${config.scaleMin}</span><span>${config.scaleMax}</span></div>
                     `;
                 }
                 else if (wType === 'readonly') { controlsHTML = `<span style="color: #64748B; font-size: 0.85rem; padding: 10px 0; display: block;">Display Only</span>`; }
-                else if (wType === 'datacard') { controlsHTML = `<div style="text-align: center; padding: 15px 0; font-size: 2rem; font-weight: bold; color: var(--primary-blue);">${displayValue}<span style="font-size: 1rem; color: #64748B; margin-left: 8px;">${config.unit || ''}</span></div>`; }
-                else if (wType === 'led') { controlsHTML = `<div class="led-container"><div class="led ${rawValue > 0 ? 'active' : ''}"></div></div>`; }
+                else if (wType === 'datacard') { controlsHTML = `<div style="text-align: center; padding: 15px 0; font-size: 2rem; font-weight: bold; color: ${wColor};">${displayValue}<span style="font-size: 1rem; color: #64748B; margin-left: 8px;">${config.unit || ''}</span></div>`; }
+                else if (wType === 'led') { 
+                    const ledStyle = rawValue > 0 ? `background-color: ${wColor}; box-shadow: 0 0 15px ${wColor}, inset 0 2px 4px rgba(255,255,255,0.4);` : '';
+                    controlsHTML = `<div class="led-container"><div class="led ${rawValue > 0 ? 'active' : ''}" style="${ledStyle}"></div></div>`; 
+                }
                 else if (wType === 'progress') {
                     let percent = ((displayValue - config.scaleMin) / (config.scaleMax - config.scaleMin)) * 100;
-                    controlsHTML = `<div style="padding: 10px 0;"><progress value="${percent}" max="100"></progress><div style="display:flex; justify-content:space-between; font-size:0.8rem; color:#64748B;"><span>${config.scaleMin}</span><span>${config.scaleMax}</span></div></div>`;
+                    controlsHTML = `<div style="padding: 10px 0;"><progress value="${percent}" max="100" style="--active-color: ${wColor};"></progress><div style="display:flex; justify-content:space-between; font-size:0.8rem; color:#64748B;"><span>${config.scaleMin}</span><span>${config.scaleMax}</span></div></div>`;
                 }
                 else if (wType === 'gauge') {
+                    // NEW: Conic-Gradient cleanly handles gauge colors without complicated transform hacks
                     let percent = Math.max(0, Math.min(100, ((displayValue - config.scaleMin) / (config.scaleMax - config.scaleMin)) * 100));
-                    let rotation = (percent * 1.8) - 90; 
-                    controlsHTML = `<div class="gauge-container"><div class="gauge"><div class="gauge-fill" style="transform: rotate(${rotation}deg);"></div><div class="gauge-cover"></div></div></div><div style="display:flex; justify-content:space-between; font-size:0.8rem; color:#64748B; margin-top:-15px;"><span>${config.scaleMin}</span><span>${config.scaleMax}</span></div>`;
+                    let angle = percent * 1.8; // 0 to 180 degrees
+                    controlsHTML = `
+                        <div class="gauge-container">
+                            <div class="gauge" style="background: conic-gradient(from 270deg at 50% 100%, ${wColor} 0deg, ${wColor} ${angle}deg, #E2E8F0 ${angle}deg, #E2E8F0 180deg);">
+                                <div class="gauge-cover"></div>
+                            </div>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; font-size:0.8rem; color:#64748B; margin-top:-15px;"><span>${config.scaleMin}</span><span>${config.scaleMax}</span></div>`;
                 }
                 else if (wType === 'toggle') { 
-                    controlsHTML = `<div style="display: flex; justify-content: center; padding: 10px 0;"><label class="switch"><input type="checkbox" ${rawValue > 0 ? 'checked' : ''} onclick="confirmToggle(event, '${tagName}', this)"><span class="slider"></span></label></div>`; 
+                    controlsHTML = `<div style="display: flex; justify-content: center; padding: 10px 0;"><label class="switch" style="--active-color: ${wColor};"><input type="checkbox" ${rawValue > 0 ? 'checked' : ''} onclick="confirmToggle(event, '${tagName}', this)"><span class="slider"></span></label></div>`; 
                 }
-                else if (wType === 'push') { controlsHTML = `<button class="btn btn-push" onmousedown="sendCommand('${tagName}', 1)" onmouseup="sendCommand('${tagName}', 0)" onmouseleave="if(event.buttons === 1) sendCommand('${tagName}', 0)" ontouchstart="sendCommand('${tagName}', 1); event.preventDefault();" ontouchend="sendCommand('${tagName}', 0); event.preventDefault();">HOLD TO ACTIVATE</button>`; }
+                else if (wType === 'push') { 
+                    controlsHTML = `<button class="btn btn-push" style="--active-color: ${wColor};" onmousedown="sendCommand('${tagName}', 1)" onmouseup="sendCommand('${tagName}', 0)" onmouseleave="if(event.buttons === 1) sendCommand('${tagName}', 0)" ontouchstart="sendCommand('${tagName}', 1); event.preventDefault();" ontouchend="sendCommand('${tagName}', 0); event.preventDefault();">HOLD TO ACTIVATE</button>`; 
+                }
                 else if (wType === 'dropdown') {
                     controlsHTML = `<select onchange="sendMappedCommand('${tagName}', this.value)">
                         <option value="0" ${displayValue == 0 ? 'selected' : ''}>State 0 (Off/Stop)</option>
@@ -394,7 +398,7 @@
                     </select>`;
                 }
                 else {
-                    controlsHTML = `<input type="number" id="input_${tagName}" placeholder="Enter target (${config.unit || 'value'})"><button class="btn" onclick="confirmNumberCommand('${tagName}')">Set Target</button>`;
+                    controlsHTML = `<input type="number" id="input_${tagName}" placeholder="Enter target (${config.unit || 'value'})"><button class="btn" style="background-color: ${wColor};" onclick="confirmNumberCommand('${tagName}')">Set Target</button>`;
                 }
 
                 widget.innerHTML = `<div class="hmi-header"><span>${tagName}</span><div><span class="live-value" id="val-${tagName}">${displayValue}</span>${unitText}</div></div><div>${controlsHTML}</div>`;
@@ -412,7 +416,7 @@
         }
         
         function sendMappedCommand(tagName, scaledValue) {
-            let config = uiConfig[tagName] || getDefaultConfig(tagName);
+            let config = getSafeConfig(tagName);
             let rawVal = unscaleValue(parseFloat(scaledValue), config);
             sendCommand(tagName, rawVal);
         }
@@ -421,10 +425,7 @@
             event.preventDefault(); 
             const targetState = checkbox.checked ? 1 : 0;
             const actionText = targetState === 1 ? "TURN ON" : "TURN OFF";
-            
-            if (confirm(`⚠️ SAFETY WARNING:\nAre you sure you want to ${actionText} ${tagName}?`)) {
-                sendCommand(tagName, targetState);
-            }
+            if (confirm(`⚠️ SAFETY WARNING:\nAre you sure you want to ${actionText} ${tagName}?`)) sendCommand(tagName, targetState);
         }
 
         function confirmNumberCommand(tagName) {
@@ -439,7 +440,7 @@
         }
 
         function adjustCounter(tagName, direction) {
-            let config = uiConfig[tagName] || getDefaultConfig(tagName);
+            let config = getSafeConfig(tagName);
             let currentScaled = scaleValue(liveData[tagName], config);
             let range = parseFloat(config.scaleMax) - parseFloat(config.scaleMin);
             let step = Math.max(1, Math.round(range * 0.01)); 
@@ -454,7 +455,7 @@
         // ==========================================
         function startKnobDrag(e, tagName) {
             e.preventDefault();
-            let config = uiConfig[tagName] || getDefaultConfig(tagName);
+            let config = getSafeConfig(tagName);
             activeKnob = { tag: tagName, min: parseFloat(config.scaleMin), max: parseFloat(config.scaleMax) };
             
             knobStartY = e.touches ? e.touches[0].clientY : e.clientY;
