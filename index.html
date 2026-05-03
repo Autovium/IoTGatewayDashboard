@@ -77,7 +77,7 @@
         .btn-counter:active { transform: scale(0.95); background: var(--secondary-blue); color: white; }
         .counter-input { flex-grow: 1; text-align: center; font-size: 1.2rem; font-weight: bold; margin: 0; padding: 0.4rem; border: 1px solid var(--border-color); border-radius: 4px; }
 
-        /* Rotary Knob - Note: touch-action: none prevents mobile scrolling */
+        /* Rotary Knob */
         .knob-wrapper { display: flex; flex-direction: column; align-items: center; margin: 10px 0; }
         .knob-base { width: 70px; height: 70px; border-radius: 50%; background: linear-gradient(135deg, #f1f5f9, #cbd5e1); box-shadow: 0 4px 6px rgba(0,0,0,0.1), inset 0 2px 4px rgba(255,255,255,0.8); display: flex; justify-content: center; align-items: center; cursor: grab; border: 1px solid #94A3B8; position: relative; touch-action: none;}
         .knob-base:active { cursor: grabbing; }
@@ -144,6 +144,12 @@
 
         let liveData = {};
         let uiConfig = {};
+
+        // Interaction States
+        let isDragging = false; 
+        let activeKnob = null;
+        let knobStartY = 0;
+        let knobStartVal = 0;
 
         // ==========================================
         // 2. WIDGET RULES & DEFAULTS
@@ -220,7 +226,9 @@
         configRef.on('value', (snapshot) => { uiConfig = snapshot.val() || {}; if(Object.keys(liveData).length > 0) updateUI(); });
         
         liveRef.on('value', (snapshot) => {
-            if (activeKnob) return; 
+            // Prevent UI jumping while user is actively dragging a knob OR a slider
+            if (activeKnob || isDragging) return; 
+            
             liveData = snapshot.val();
             const statusDot = document.getElementById('conn-status');
             if (liveData) { statusDot.classList.add('status-online'); updateUI(); } 
@@ -274,7 +282,6 @@
 
             let newConfig = { modbusType: mType, accessMode: aMode, widgetType: wType };
             
-            // MATH VALIDATION FIX
             if (mType === 'D') {
                 let rMin = parseFloat(document.getElementById(`rmin-${tagName}`).value);
                 let rMax = parseFloat(document.getElementById(`rmax-${tagName}`).value);
@@ -283,7 +290,7 @@
 
                 if (rMin === rMax || sMin === sMax) {
                     alert("Validation Error:\nMin and Max values cannot be identical. Please adjust your scaling to avoid divide-by-zero errors.");
-                    return; // Abort save operation
+                    return; 
                 }
 
                 newConfig.rawMin = rMin;
@@ -313,7 +320,6 @@
                 widget.className = 'hmi-widget';
                 let controlsHTML = '';
 
-                // Counter (+ / -)
                 if (wType === 'counter') {
                     controlsHTML = `
                         <div class="counter-container">
@@ -327,7 +333,13 @@
                 else if (wType === 'vslider') {
                     controlsHTML = `
                         <div class="vslider-wrapper">
-                            <input type="range" orient="vertical" min="${config.scaleMin}" max="${config.scaleMax}" value="${displayValue}" oninput="sendMappedCommand('${tagName}', this.value)">
+                            <input type="range" orient="vertical" min="${config.scaleMin}" max="${config.scaleMax}" value="${displayValue}" 
+                                onmousedown="isDragging=true" 
+                                onmouseup="isDragging=false" 
+                                onmouseleave="isDragging=false" 
+                                ontouchstart="isDragging=true" 
+                                ontouchend="isDragging=false" 
+                                oninput="document.getElementById('val-${tagName}').innerText = this.value; sendMappedCommand('${tagName}', this.value)">
                         </div>
                         <div style="text-align:center; font-size: 0.8rem; color: #64748B;">Range: ${config.scaleMin} - ${config.scaleMax}</div>
                     `;
@@ -348,11 +360,16 @@
                 // Horizontal Slider
                 else if (wType === 'slider') {
                     controlsHTML = `
-                        <input type="range" min="${config.scaleMin}" max="${config.scaleMax}" value="${displayValue}" oninput="sendMappedCommand('${tagName}', this.value)">
+                        <input type="range" min="${config.scaleMin}" max="${config.scaleMax}" value="${displayValue}" 
+                            onmousedown="isDragging=true" 
+                            onmouseup="isDragging=false" 
+                            onmouseleave="isDragging=false" 
+                            ontouchstart="isDragging=true" 
+                            ontouchend="isDragging=false" 
+                            oninput="document.getElementById('val-${tagName}').innerText = this.value; sendMappedCommand('${tagName}', this.value)">
                         <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #64748B;"><span>${config.scaleMin}</span><span>${config.scaleMax}</span></div>
                     `;
                 }
-                // Read-Only Display
                 else if (wType === 'readonly') { controlsHTML = `<span style="color: #64748B; font-size: 0.85rem; padding: 10px 0; display: block;">Display Only</span>`; }
                 else if (wType === 'datacard') { controlsHTML = `<div style="text-align: center; padding: 15px 0; font-size: 2rem; font-weight: bold; color: var(--primary-blue);">${displayValue}<span style="font-size: 1rem; color: #64748B; margin-left: 8px;">${config.unit || ''}</span></div>`; }
                 else if (wType === 'led') { controlsHTML = `<div class="led-container"><div class="led ${rawValue > 0 ? 'active' : ''}"></div></div>`; }
@@ -365,7 +382,6 @@
                     let rotation = (percent * 1.8) - 90; 
                     controlsHTML = `<div class="gauge-container"><div class="gauge"><div class="gauge-fill" style="transform: rotate(${rotation}deg);"></div><div class="gauge-cover"></div></div></div><div style="display:flex; justify-content:space-between; font-size:0.8rem; color:#64748B; margin-top:-15px;"><span>${config.scaleMin}</span><span>${config.scaleMax}</span></div>`;
                 }
-                // TOGGLE FIX - Added confirm popup
                 else if (wType === 'toggle') { 
                     controlsHTML = `<div style="display: flex; justify-content: center; padding: 10px 0;"><label class="switch"><input type="checkbox" ${rawValue > 0 ? 'checked' : ''} onclick="confirmToggle(event, '${tagName}', this)"><span class="slider"></span></label></div>`; 
                 }
@@ -377,7 +393,6 @@
                         <option value="2" ${displayValue == 2 ? 'selected' : ''}>State 2 (High/Fault)</option>
                     </select>`;
                 }
-                // NUMBER FIX - Added confirm popup to Set Target
                 else {
                     controlsHTML = `<input type="number" id="input_${tagName}" placeholder="Enter target (${config.unit || 'value'})"><button class="btn" onclick="confirmNumberCommand('${tagName}')">Set Target</button>`;
                 }
@@ -402,9 +417,8 @@
             sendCommand(tagName, rawVal);
         }
 
-        // ACCIDENTAL BUMP PROTECTION: Toggle Intercept
         function confirmToggle(event, tagName, checkbox) {
-            event.preventDefault(); // Stop immediate HTML change
+            event.preventDefault(); 
             const targetState = checkbox.checked ? 1 : 0;
             const actionText = targetState === 1 ? "TURN ON" : "TURN OFF";
             
@@ -413,7 +427,6 @@
             }
         }
 
-        // ACCIDENTAL BUMP PROTECTION: Number Intercept
         function confirmNumberCommand(tagName) {
             const inputElement = document.getElementById('input_' + tagName);
             const scaledValue = parseFloat(inputElement.value);
@@ -425,7 +438,6 @@
             }
         }
 
-        // Handler for Counter (+/-)
         function adjustCounter(tagName, direction) {
             let config = uiConfig[tagName] || getDefaultConfig(tagName);
             let currentScaled = scaleValue(liveData[tagName], config);
@@ -440,10 +452,6 @@
         // ==========================================
         // 8. ROTARY KNOB LOGIC
         // ==========================================
-        let activeKnob = null;
-        let knobStartY = 0;
-        let knobStartVal = 0;
-
         function startKnobDrag(e, tagName) {
             e.preventDefault();
             let config = uiConfig[tagName] || getDefaultConfig(tagName);
